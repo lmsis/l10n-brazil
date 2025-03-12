@@ -115,6 +115,7 @@ class OperationLine(models.Model):
         comodel_name="l10n_br_fiscal.tax.definition",
         inverse_name="fiscal_operation_line_id",
         string="Tax Definition",
+        copy=True,
     )
 
     comment_ids = fields.Many2many(
@@ -202,6 +203,7 @@ class OperationLine(models.Model):
         nbs=None,
         cest=None,
         city_taxation_code=None,
+        service_type=None,
         ind_final=None,
     ):
         mapping_result = {
@@ -226,6 +228,7 @@ class OperationLine(models.Model):
             nbs=nbs,
             cest=cest,
             city_taxation_code=city_taxation_code,
+            service_type=service_type,
         ):
             self._build_mapping_result(mapping_result, tax_definition)
 
@@ -270,6 +273,7 @@ class OperationLine(models.Model):
             nbs=nbs,
             cest=cest,
             city_taxation_code=city_taxation_code,
+            service_type=service_type,
         ):
             self._build_mapping_result(mapping_result, tax_definition)
 
@@ -285,6 +289,7 @@ class OperationLine(models.Model):
             nbs=nbs,
             cest=cest,
             city_taxation_code=city_taxation_code,
+            service_type=service_type,
         ):
             self._build_mapping_result(mapping_result, tax_definition)
 
@@ -300,6 +305,7 @@ class OperationLine(models.Model):
             nbs=nbs,
             cest=cest,
             city_taxation_code=city_taxation_code,
+            service_type=service_type,
         ):
             self._build_mapping_result(mapping_result, tax_definition)
 
