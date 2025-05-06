@@ -13,6 +13,7 @@
     "version": "16.0.5.0.0",
     "depends": [
         "product",
+        "uom_alias",
         "l10n_br_base",
     ],
     "data": [
@@ -23,7 +24,7 @@
         "data/l10n_br_fiscal_email_template.xml",
         "data/l10n_br_fiscal_data.xml",
         "data/uom_data.xml",
-        "data/uom_alternative_data.xml",
+        "data/uom.alias.csv",
         "data/product_data.xml",
         "data/l10n_br_fiscal.partner.profile.csv",
         "data/res_partner_data.xml",
@@ -98,7 +99,6 @@
         "views/res_config_settings_view.xml",
         "views/subsequent_operation_view.xml",
         "views/subsequent_document_view.xml",
-        "views/uom_uom.xml",
         "views/invalidate_number_view.xml",
         "views/city_taxation_code.xml",
         "views/operation_dashboard_view.xml",
