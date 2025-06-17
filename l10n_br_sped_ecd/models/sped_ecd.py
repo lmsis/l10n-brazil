@@ -484,7 +484,15 @@ class RegistroI200(models.Model):
 
     @api.model
     def _odoo_domain(self, parent_record, declaration):
-        return []  # ("company_id", "=", declaration.company_id.id), ("state", "=", "open")]
+        if declaration.debug:
+            return []
+        else:
+            return [
+                ("company_id", "=", declaration.company_id.id),
+                ("state", "=", "open"),
+                ("date", ">", declaration.DT_INI),
+                ("date", "<", declaration.DT_FIN),
+            ]
 
     @api.model
     def _map_from_odoo(self, record, parent_record, declaration, index=0):
