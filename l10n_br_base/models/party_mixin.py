@@ -1,16 +1,25 @@
 # Copyright (C) 2021 Renato Lima (Akretion)
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
-
 from erpbrasil.base import misc
 from erpbrasil.base.fiscal import cnpj_cpf
 
 from odoo import api, fields, models
+from odoo.osv import expression
 
 
 class PartyMixin(models.AbstractModel):
     _name = "l10n_br_base.party.mixin"
     _description = "Brazilian partner and company data mixin"
+
+    vat = fields.Char()  # mixin methods needs the vat field here
+    cnpj_cpf = fields.Char(  # alias for v14 backward compat
+        string="CNPJ/CPF",
+        # (for some reason related="vat" makes numerous tests fail)
+        inverse="_inverse_cnpj_cpf",
+        compute="_compute_cnpj_cpf",
+        copy=False,
+    )
 
     cnpj_cpf_stripped = fields.Char(
         string="CNPJ/CPF Stripped",
@@ -18,12 +27,6 @@ class PartyMixin(models.AbstractModel):
         compute="_compute_cnpj_cpf_stripped",
         store=True,
         index=True,
-    )
-
-    cnpj_cpf = fields.Char(
-        string="CNPJ/CPF",
-        size=18,
-        unaccent=False,
     )
 
     inscr_est = fields.Char(
@@ -84,6 +87,45 @@ class PartyMixin(models.AbstractModel):
             else False
         )
 
+    def _inverse_cnpj_cpf(self):
+        for partner in self:
+            partner.vat = cnpj_cpf.formata(str(self.cnpj_cpf))
+
+    @api.model
+    def search(self, domain, offset=0, limit=None, order=None, count=False):
+        """in the case of a simple search with only OR terms and a vat ilike condition,
+        inject the possibility to match the cnpj_cpf_stripped field.
+        """
+        if not any(term == "&" for term in domain) and not self._context.get(
+            "no_stripped_match"
+        ):
+            for term in domain:
+                if (
+                    isinstance(term, list | tuple)
+                    and len(term) == 3
+                    and term[0] == "vat"
+                    and term[1] == "ilike"
+                ):
+                    domain = expression.OR(
+                        [domain, [("cnpj_cpf_stripped", "ilike", term[2])]]
+                    )
+                    break
+        return super().search(domain, offset, limit, order, count)
+
+    @api.onchange("cnpj_cpf")
+    def _onchange_cnpj_cpf(self):  # TODO, see comment bellow
+        """
+        In the future we should simply put @api.onchange("cnpj_cpf")
+        on _inverse_cnpj_cpf and remove this method. But for now,
+        it's good to maintain backward compat with the v14 codebase with this.
+        """
+        return self._inverse_cnpj_cpf()
+
+    @api.depends("vat")
+    def _compute_cnpj_cpf(self):
+        for partner in self:
+            partner.cnpj_cpf = partner.vat
+
     @api.depends("cnpj_cpf")
     def _compute_cnpj_cpf_stripped(self):
         for record in self:
@@ -93,10 +135,6 @@ class PartyMixin(models.AbstractModel):
                 )
             else:
                 record.cnpj_cpf_stripped = False
-
-    @api.onchange("cnpj_cpf")
-    def _onchange_cnpj_cpf(self):
-        self.cnpj_cpf = cnpj_cpf.formata(str(self.cnpj_cpf))
 
     @api.onchange("zip")
     def _onchange_zip(self):
