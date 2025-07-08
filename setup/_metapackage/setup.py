@@ -19,6 +19,7 @@ setuptools.setup(
         'odoo-addon-l10n_br_coa>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_coa_generic>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_coa_simple>=16.0dev,<16.1dev',
+        'odoo-addon-l10n_br_contract>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_crm>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_crm_cnpj_search>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_cte>=16.0dev,<16.1dev',
