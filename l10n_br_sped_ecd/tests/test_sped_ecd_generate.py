@@ -14,6 +14,7 @@ class SpedTest(AccountMoveBRCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.fol_sale_with_icms_reduction = cls.env[
             "l10n_br_fiscal.operation.line"
         ].create(
