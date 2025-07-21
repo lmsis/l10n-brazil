@@ -145,6 +145,7 @@ class FocusnfeNfse(models.AbstractModel):
             "incentivador_cultural": rps_info.get("incentivador_cultural", False),
             "natureza_operacao": rps_info.get("natureza_operacao"),
             "optante_simples_nacional": rps_info.get("optante_simples_nacional", False),
+            "regime_especial_tributacao": rps_info.get("regime_especial_tributacao", False),
             "status": rps_info.get("status"),
             "informacoes_adicionais_contribuinte": rps_info.get(
                 "customer_additional_data", False
