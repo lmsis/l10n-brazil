@@ -207,7 +207,8 @@ class Registro0150(models.Model):
             "IE_ST": 0,  # Inscrição Estadual do participante na unidade da feder...
             "COD_MUN": misc.punctuation_rm(record.city_id.ibge_code),
             "IM": misc.punctuation_rm(record.inscr_mun or ""),
-            "SUFRAMA": record.suframa or "",  # Inscrição da entidade na SUFRAMA
+            "SUFRAMA": record.l10n_br_isuf_code
+            or "",  # Inscrição da entidade na SUFRAMA
         }
 
 
