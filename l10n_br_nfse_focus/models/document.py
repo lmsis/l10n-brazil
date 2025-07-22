@@ -633,6 +633,11 @@ class Document(models.Model):
             filter_focusnfe
         ):
             for edoc in record.serialize():
+
+                if record.state == "enviada":
+                    record._document_status()
+                    continue
+
                 ref = "rps" + record.rps_number
                 response = self.env["focusnfe.nfse"].process_focus_nfse_document(
                     edoc, ref, record.company_id, record.nfse_environment
