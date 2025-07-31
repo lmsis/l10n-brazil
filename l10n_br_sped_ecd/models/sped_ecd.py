@@ -94,7 +94,7 @@ class Registro0000(models.Model):
             "UF": record.state_id.code,
             "IE": misc.punctuation_rm(record.l10n_br_ie_code),
             "COD_MUN": record.city_id.ibge_code,
-            "IM": misc.punctuation_rm(record.inscr_mun or ""),
+            "IM": misc.punctuation_rm(record.l10n_br_im_code or ""),
             # "IND_SIT_ESP": (will use the declaration field directly),
             # "IND_SIT_INI_PER": (will use the declaration field directly),
             "IND_NIRE": 0,  # TODO
@@ -206,7 +206,7 @@ class Registro0150(models.Model):
             "IE": misc.punctuation_rm(record.l10n_br_ie_code),
             "IE_ST": 0,  # Inscrição Estadual do participante na unidade da feder...
             "COD_MUN": misc.punctuation_rm(record.city_id.ibge_code),
-            "IM": misc.punctuation_rm(record.inscr_mun or ""),
+            "IM": misc.punctuation_rm(record.l10n_br_im_code or ""),
             "SUFRAMA": record.l10n_br_isuf_code
             or "",  # Inscrição da entidade na SUFRAMA
         }
