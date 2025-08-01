@@ -17,7 +17,6 @@ from odoo.addons.l10n_br_fiscal.constants.fiscal import (
     FISCAL_IN_OUT_ALL,
     FISCAL_OUT,
     MODELO_FISCAL_NFE,
-    SITUACAO_EDOC_AUTORIZADA,
     SITUACAO_EDOC_CANCELADA,
     SITUACAO_EDOC_EM_DIGITACAO,
 )
@@ -200,9 +199,9 @@ class AccountMove(models.Model):
             else:
                 inv.fiscal_operation_type = MOVE_TO_OPERATION[inv.move_type]
 
-    def _get_amount_lines(self):
-        """Get object lines instances used to compute fields"""
-        return self.mapped("invoice_line_ids")
+    @api.model
+    def _get_fiscal_lines_field_name(self):
+        return "invoice_line_ids"
 
     def ensure_one_doc(self):
         self.ensure_one()
@@ -268,7 +267,7 @@ class AccountMove(models.Model):
     )
     def _compute_amount(self):
         for move in self.filtered(lambda m: m.fiscal_operation_id):
-            move._compute_fiscal_amount()
+            move._compute_fiscal_amount()  # breaks test_composite_move if removed
             for line in move.line_ids:
                 if (
                     move.is_invoice(include_receipts=True)
@@ -623,27 +622,6 @@ class AccountMove(models.Model):
                     )
 
         return new_moves
-
-    def _finalize_invoices(self, invoices):
-        for invoice in invoices:
-            invoice.compute_taxes()
-            for line in invoice.line_ids:
-                # Use additional field helper function (for account extensions)
-                line._set_additional_fields(invoice)
-            invoice._onchange_cash_rounding()
-
-    def post(self, invoice=False):
-        # TODO FIXME migrate: no more invoice keyword
-        result = super().post()
-        if invoice:
-            if (
-                invoice.document_type_id
-                and invoice.document_electronic
-                and invoice.issuer == DOCUMENT_ISSUER_COMPANY
-                and invoice.state_edoc != SITUACAO_EDOC_AUTORIZADA
-            ):
-                self.button_cancel()
-        return result
 
     def button_cancel(self):
         for doc in self.filtered(lambda d: d.document_type_id):
