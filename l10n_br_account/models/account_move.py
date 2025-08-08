@@ -85,6 +85,7 @@ class AccountMove(models.Model):
         copy=False,
         ondelete="cascade",
         store=True,
+        readonly=False,
         compute="_compute_fiscal_document_id",
     )
 
@@ -294,6 +295,10 @@ class AccountMove(models.Model):
 
         return result
 
+    def _compute_imported_terms(self):
+        self.ensure_one()
+        pass  # meant to be overriden
+
     @api.depends(
         "invoice_payment_term_id",
         "invoice_date",
@@ -320,7 +325,9 @@ class AccountMove(models.Model):
             invoice.needed_terms_dirty = True
             sign = 1 if invoice.is_inbound(include_receipts=True) else -1
             if invoice.is_invoice(True) and invoice.invoice_line_ids:
-                if invoice.invoice_payment_term_id:
+                if invoice.imported_document:
+                    invoice._compute_imported_terms()
+                elif invoice.invoice_payment_term_id:
                     if is_draft:
                         tax_amount_currency = 0.0
                         untaxed_amount_currency = 0.0
@@ -378,7 +385,7 @@ class AccountMove(models.Model):
                             invoice.needed_terms[key]["amount_currency"] += values[
                                 "amount_currency"
                             ]
-                else:
+                if not invoice.needed_terms:
                     invoice.needed_terms[
                         frozendict(
                             {
@@ -690,12 +697,15 @@ class AccountMove(models.Model):
             )
         )
         if not move_id or not move.fiscal_document_id:
+            move_form.partner_id = fiscal_document.partner_id
             move_form.invoice_date = fiscal_document.document_date
             move_form.date = fiscal_document.document_date
             move_form.document_type_id = fiscal_document.document_type_id
             move_form.fiscal_document_id = fiscal_document
             move_form.fiscal_operation_id = fiscal_document.fiscal_operation_id
+            move_form.document_serie = fiscal_document.document_serie
 
+        unit_and_prices = []  # save units to force them later
         for line in fiscal_document.fiscal_line_ids:
             with move_form.invoice_line_ids.new() as line_form:
                 line_form.cfop_id = (
@@ -703,5 +713,14 @@ class AccountMove(models.Model):
                 )  # required if we disable some fiscal tax updates
                 line_form.fiscal_operation_id = self.fiscal_operation_id
                 line_form.fiscal_document_line_id = line
+                # for some reason trying to set the product_uom_id
+                # here results in strange bugs like unbalanced move
+                # so we will force product_uom_id later
+                # we also save price_unit to reset unit factor effect
+                unit_and_prices.append((line.uot_id.id, line.price_unit))
         move_form.save()
+        move = self.env["account.move"].browse(move_form.id)
+        for index, item in enumerate(unit_and_prices):
+            move.invoice_line_ids[index].product_uom_id = item[0]
+            move.invoice_line_ids[index].price_unit = item[1]
         return move_form
