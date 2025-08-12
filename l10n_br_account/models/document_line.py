@@ -16,10 +16,11 @@ class FiscalDocumentLine(models.Model):
     )
 
     uom_id = fields.Many2one(
-        comodel_name="uom.uom",
-        related="account_line_ids.product_uom_id",
+        compute="_compute_product_uom_id",
         store=True,
-        string="UOM",
+        readonly=False,
+        precompute=True,
+        ondelete="restrict",
     )
 
     # -------------------------------------------------------------------------
@@ -70,6 +71,54 @@ class FiscalDocumentLine(models.Model):
                     != 0
                 ):
                     aml.price_unit = line.price_unit
+
+    @api.depends("product_id")
+    def _compute_product_uom_id(self):
+        for line in self:
+            # vendor bills should have the product purchase UOM
+            if line.fiscal_operation_type == "in":
+                line.uom_id = line.product_id.uom_po_id
+            else:
+                line.uom_id = line.product_id.uom_id
+
+    def _get_fiscal_partner(self):
+        """
+        Get the partner from the aml to avoid an _inherits/ORM limitation.
+        partner_id can be None on a NewID fiscal document line behind an aml.
+        In this case we can retrieve it using the related amls.
+        """
+        self.ensure_one()
+        if self.partner_id:
+            return self.partner_id
+        elif self.account_line_ids:
+            return self.account_line_ids[0].partner_id
+        return self.partner_id
+
+    def _get_fiscal_company(self):
+        """
+        Get the company from the aml to avoid an _inherits/ORM limitation.
+        company_id can be None on a NewID fiscal document line behind an aml.
+        In this case we can retrieve it using the related amls.
+        """
+        self.ensure_one()
+        if self.company_id:
+            return self.company_id
+        elif self.account_line_ids:
+            return self.account_line_ids[0].company_id
+        return self.company_id
+
+    def _get_ind_final(self):
+        """
+        Get ind_final from the aml to avoid an _inherits/ORM limitation.
+        ind_final can be None on a NewID fiscal document line behind an aml.
+        In this case we can retrieve it using the related amls.
+        """
+        self.ensure_one()
+        if self.ind_final:
+            return self.ind_final
+        elif self.account_line_ids:
+            return self.account_line_ids[0].ind_final
+        return self.ind_final
 
     @api.model_create_multi
     def create(self, vals_list):
