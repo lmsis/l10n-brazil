@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-
     <!--
     views: res.partner
     -->
+
     <record id="l10n_br_base_res_partner_filter" model="ir.ui.view">
         <field name="name">l10n_br_base.res.partner.filter</field>
         <field name="model">res.partner</field>
@@ -83,13 +83,13 @@
                     attrs="{'invisible': [('is_company','=', True)]}"
                 />
                 <div name="l10n_br_ie_code">
-                         <label
+                    <label
                         for="l10n_br_ie_code"
                         string="IE"
                         attrs="{'invisible': [('is_company','=', False), ('parent_id', '!=', False)]}"
                     />
                 </div>
-                     <field
+                <field
                     colspan="4"
                     name="l10n_br_ie_code"
                     nolabel="1"
@@ -175,5 +175,4 @@
             </xpath>
         </field>
     </record>
-
 </odoo>
