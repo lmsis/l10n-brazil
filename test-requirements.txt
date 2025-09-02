@@ -1,3 +1,4 @@
+odoo_test_helper
 xsdata
 odoo_test_helper
 nfelib
