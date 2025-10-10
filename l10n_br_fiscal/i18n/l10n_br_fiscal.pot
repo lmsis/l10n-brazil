@@ -1951,7 +1951,6 @@ msgid "Create new products."
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__create_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__create_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__create_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__create_uid
@@ -1995,7 +1994,6 @@ msgid "Created by"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__create_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__create_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__create_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__create_date
@@ -2280,7 +2278,6 @@ msgid "Discount Value"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__display_name
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__display_name
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__display_name
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__display_name
@@ -4337,7 +4334,6 @@ msgid "ICMSSN Credit Value"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__id
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__id
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__id
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__id
@@ -5153,7 +5149,6 @@ msgid "LATA"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin____last_update
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest____last_update
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop____last_update
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code____last_update
@@ -5202,7 +5197,6 @@ msgid "Last Period Payroll Amount"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__write_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__write_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__write_uid
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__write_uid
@@ -5246,7 +5240,6 @@ msgid "Last Updated by"
 msgstr ""
 
 #. module: l10n_br_fiscal
-#: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_base_wizard_mixin__write_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cest__write_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_cfop__write_date
 #: model:ir.model.fields,field_description:l10n_br_fiscal.field_l10n_br_fiscal_city_taxation_code__write_date
