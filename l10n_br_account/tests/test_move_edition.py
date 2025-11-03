@@ -7,7 +7,7 @@ from unittest import mock
 from odoo import Command, fields
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase
-from odoo.tests.common import Form
+from odoo.tests.common import Form, tagged
 
 _logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class PatchedForm(Form):
             _logger.debug(f"ignoring error {e}")
 
 
+@tagged("post_install", "-at_install")
 class TestMoveEdition(TransactionCase):
     """
     Test basic invoicing scenarios through the user interface to ensure
@@ -203,12 +204,17 @@ class TestMoveEdition(TransactionCase):
             )
 
             # ensure manually setting a product_uom_id is properly sync'ed:
+            self.assertEqual(
+                line_form.product_uom_id, self.env.ref("uom.product_uom_unit")
+            )
+            self.assertEqual(line_form.uot_id, self.env.ref("uom.product_uom_unit"))
             line_form.product_uom_id = self.env.ref("l10n_br_fiscal.UOM_PC")
             self.assertEqual(line_form.uot_id, self.env.ref("l10n_br_fiscal.UOM_PC"))
             line_form.uot_id = self.env.ref("uom.product_uom_unit")
 
             line_form.price_unit = 42
             line_form.quantity = 5
+
             self.assertEqual(len(line_form.fiscal_tax_ids), 4)
             self.assertEqual(
                 line_form.icms_tax_id, self.env.ref("l10n_br_fiscal.tax_icms_7")
@@ -241,6 +247,9 @@ class TestMoveEdition(TransactionCase):
             self.assertEqual(
                 line_form.ipi_tax_id, self.env.ref("l10n_br_fiscal.tax_ipi_5")
             )
+            line_form.icmsfcp_base = line_form.price_unit
+            line_form.icmsfcp_value = 3  # ensure manually setting FCP value works
+            self.assertEqual(line_form.icmsfcp_value, 3)
 
         move = move_form.save()
 
@@ -258,7 +267,7 @@ class TestMoveEdition(TransactionCase):
         self.assertEqual(move.user_id, move.fiscal_document_id.user_id)
 
         # test "shadowed" line fields:
-        aml = move.line_ids[0]
+        aml = move.line_ids.filtered(lambda line: line.product_id)[0]
         fisc_line = move.fiscal_line_ids[0]
         self.assertEqual(aml.product_id, fisc_line.product_id)
         self.assertEqual(aml.name, fisc_line.name)
@@ -277,6 +286,8 @@ class TestMoveEdition(TransactionCase):
         )
         self.assertEqual(aml.ipi_tax_id, self.env.ref("l10n_br_fiscal.tax_ipi_5"))
         self.assertEqual(aml.icms_value, 79.38)
+        self.assertEqual(aml.icmsfcp_base, aml.price_unit)
+        self.assertEqual(aml.icmsfcp_value, 3)
 
         # NCM entered manually must be maintained,
         # it must not be the same as the product.
@@ -385,7 +396,7 @@ class TestMoveEdition(TransactionCase):
         self.assertEqual(move.user_id, move.fiscal_document_id.user_id)
 
         # test "shadowed" line fields:
-        aml = move.line_ids[0]
+        aml = move.line_ids.filtered(lambda line: line.product_id)[0]
         fisc_line = move.fiscal_line_ids[0]
         self.assertEqual(aml.product_id, fisc_line.product_id)
         self.assertEqual(aml.name, fisc_line.name)
