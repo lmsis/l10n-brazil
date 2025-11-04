@@ -37,6 +37,7 @@ setuptools.setup(
         'odoo-addon-l10n_br_fiscal_subsequent_document>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_hr>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_hr_contract>=16.0dev,<16.1dev',
+        'odoo-addon-l10n_br_hr_expense_invoice>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_ie_search>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_mdfe>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_mdfe_spec>=16.0dev,<16.1dev',
