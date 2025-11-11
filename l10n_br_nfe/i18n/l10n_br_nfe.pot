@@ -3940,6 +3940,11 @@ msgid ""
 msgstr ""
 
 #. module: l10n_br_nfe
+#: model:ir.model.fields,field_description:l10n_br_nfe.field_l10n_br_fiscal_document__nfe40_tpEnteGov
+msgid "Tipo de Entidade Governamental"
+msgstr ""
+
+#. module: l10n_br_nfe
 #: model:ir.model.fields,field_description:l10n_br_nfe.field_l10n_br_fiscal_document_line__nfe40_choice_icms
 msgid "Tipo de ICMS"
 msgstr ""
@@ -3955,6 +3960,27 @@ msgid ""
 "Tipo de Integração do processo de pagamento com o sistema de automação da empresa:\n"
 "1 - Pagamento integrado com o sistema de automação da empresa (Ex.: equipamento TEF, Comércio Eletrônico, POS Integrado);\n"
 "2 - Pagamento não integrado com o sistema de automação da empresa (Ex.: equipamento POS Simples)."
+msgstr ""
+
+#. module: l10n_br_nfe
+#: model:ir.model.fields,field_description:l10n_br_nfe.field_l10n_br_fiscal_document__nfe40_tpNFCredito
+msgid "Tipo de Nota de Crédito"
+msgstr ""
+
+#. module: l10n_br_nfe
+#: model:ir.model.fields,field_description:l10n_br_nfe.field_l10n_br_fiscal_document__nfe40_tpNFDebito
+msgid "Tipo de Nota de Débito"
+msgstr ""
+
+#. module: l10n_br_nfe
+#: model:ir.model.fields,help:l10n_br_nfe.field_l10n_br_fiscal_document__nfe40_tpNFDebito
+msgid ""
+"Tipo de Nota de Débito:\n"
+"01=Transferência de créditos para Cooperativas; \n"
+"02=Anulação de Crédito por Saídas Imunes/Isentas; \n"
+"03=Débitos de notas fiscais não processadas na apuração; \n"
+"04=Multa e juros; \n"
+"05=Transferência de crédito de sucessão."
 msgstr ""
 
 #. module: l10n_br_nfe
