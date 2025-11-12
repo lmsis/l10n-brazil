@@ -53,6 +53,7 @@ setuptools.setup(
         'odoo-addon-l10n_br_purchase_stock>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_resource>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_sale>=16.0dev,<16.1dev',
+        'odoo-addon-l10n_br_sale_blanket_order>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_sale_commission>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_sale_invoice_plan>=16.0dev,<16.1dev',
         'odoo-addon-l10n_br_sale_stock>=16.0dev,<16.1dev',
