@@ -1199,6 +1199,15 @@ class CTe(spec_models.StackedModel):
     # Framework Spec model's methods
     ################################
 
+    @api.model
+    def _prepare_import_dict(
+        self, values, model=None, parent_dict=None, defaults_model=None
+    ):
+        return {
+            **super()._prepare_import_dict(values, model, parent_dict, defaults_model),
+            "imported_document": True,
+        }
+
     def _export_field(self, xsd_field, class_obj, member_spec, export_value=None):
         if xsd_field == "cte40_tpAmb":
             self.env.context = dict(self.env.context)
@@ -1277,7 +1286,9 @@ class CTe(spec_models.StackedModel):
         return res
 
     def _build_many2one(self, comodel, vals, new_value, key, value, path):
-        if key == "cte40_emit" and self.env.context.get("edoc_type") == "in":
+        if key in ("cte40_infNFe", "cte40_autXML"):
+            return  # TODO fix these imports eventually
+        elif key == "cte40_emit" and self.env.context.get("edoc_type") == "in":
             enderEmit_value = self.env["res.partner"].build_attrs(
                 value.enderEmit, path=path
             )

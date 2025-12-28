@@ -5,7 +5,7 @@
 from odoo import _, fields, models
 
 
-class DocumentImportWizardMixin(models.TransientModel):
+class DocumentImportWizard(models.TransientModel):
     """
     Extend the generic Document Importer so that importing
     a fiscal document will also create an account move and so
@@ -13,7 +13,7 @@ class DocumentImportWizardMixin(models.TransientModel):
     the vendor bills upload button.
     """
 
-    _inherit = "l10n_br_fiscal.document.import.wizard.mixin"
+    _inherit = "l10n_br_fiscal.document.import.wizard"
 
     # a transient wizard cannot be linked to any persistent
     # account.move record. So in case the user upload several
@@ -46,7 +46,7 @@ class DocumentImportWizardMixin(models.TransientModel):
             .sudo()
             .search(
                 [
-                    ("res_model", "=", "l10n_br_fiscal.document.import.wizard.mixin"),
+                    ("res_model", "=", "l10n_br_fiscal.document.import.wizard"),
                     ("res_id", "=", self.id),
                     ("create_uid", "=", self._uid),
                 ],
@@ -95,13 +95,10 @@ class DocumentImportWizardMixin(models.TransientModel):
     def _get_importer_action(self, attachments, move_id=None):
         """
         Try to parse the 1st file of the the attachments to
-        detect its type and return the specialized wizard import
-        action for it. Also mark the other attachments to be imported
-        next.
+        detect its type and return the wizard import action.
+        Also mark the other attachments to be imported next.
         """
-        binding = self._parse_file_data(attachments[0].datas)
-        kind, specialized_importer = self._detect_binding(binding)
-        wizard = self.env[specialized_importer].create(
+        wizard = self.env["l10n_br_fiscal.document.import.wizard"].create(
             {
                 "file": attachments[0].datas,
                 "first_imported_move_id": self.first_imported_move_id or move_id,
@@ -110,15 +107,15 @@ class DocumentImportWizardMixin(models.TransientModel):
 
         for attachment in attachments:
             # this link will allow to retrieve the next attachments to import:
-            attachment.res_model = "l10n_br_fiscal.document.import.wizard.mixin"
+            attachment.res_model = "l10n_br_fiscal.document.import.wizard"
             attachment.res_id = wizard.id
 
         wizard._onchange_file()
         return {
-            "name": _("Adjust Importation for document type %s") % (kind,),
+            "name": _("Adjust Importation"),
             "type": "ir.actions.act_window",
             "target": "new",
             "views": [[False, "form"]],
             "res_id": wizard.id,
-            "res_model": specialized_importer,
+            "res_model": "l10n_br_fiscal.document.import.wizard",
         }
