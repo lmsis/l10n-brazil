@@ -74,11 +74,6 @@ msgid "Indicates if Brazilian localization fields should be displayed."
 msgstr ""
 
 #. module: l10n_br_crm
-#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__l10n_br_isuf_code
-msgid "L10N Br Isuf Code"
-msgstr ""
-
-#. module: l10n_br_crm
 #: model:ir.model,name:l10n_br_crm.model_crm_lead
 msgid "Lead/Opportunity"
 msgstr ""
@@ -94,8 +89,13 @@ msgid "Legal Nature"
 msgstr ""
 
 #. module: l10n_br_crm
-#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__inscr_mun
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__l10n_br_im_code
 msgid "Municipal Tax Number"
+msgstr ""
+
+#. module: l10n_br_crm
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__inscr_mun
+msgid "Municipal Tax Number alias"
 msgstr ""
 
 #. module: l10n_br_crm
@@ -114,7 +114,7 @@ msgid "Others State Tax Number"
 msgstr ""
 
 #. module: l10n_br_crm
-#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__rg
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__l10n_br_rg_code
 msgid "RG"
 msgstr ""
 
@@ -124,8 +124,13 @@ msgid "Show L10N Br"
 msgstr ""
 
 #. module: l10n_br_crm
-#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__inscr_est
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__l10n_br_ie_code
 msgid "State Tax Number"
+msgstr ""
+
+#. module: l10n_br_crm
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__inscr_est
+msgid "State Tax Number alias"
 msgstr ""
 
 #. module: l10n_br_crm
@@ -136,6 +141,11 @@ msgstr ""
 #. module: l10n_br_crm
 #: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__street_number
 msgid "Street Number"
+msgstr ""
+
+#. module: l10n_br_crm
+#: model:ir.model.fields,field_description:l10n_br_crm.field_crm_lead__l10n_br_isuf_code
+msgid "Suframa"
 msgstr ""
 
 #. module: l10n_br_crm

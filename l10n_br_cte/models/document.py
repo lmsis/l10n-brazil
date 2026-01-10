@@ -9,7 +9,6 @@ import re
 import string
 import sys
 from datetime import datetime
-from enum import Enum
 
 from erpbrasil.base.fiscal import cnpj_cpf
 from erpbrasil.base.fiscal.edoc import ChaveEdoc
@@ -23,7 +22,7 @@ from nfelib.cte.bindings.v4_0.proc_cte_v4_00 import CteProc
 # from nfelib.nfe.ws.edoc_legacy import CTeAdapter as edoc_cte
 from xsdata.formats.dataclass.parsers import XmlParser
 
-from odoo import _, api, fields
+from odoo import Command, _, api, fields
 from odoo.exceptions import UserError, ValidationError
 
 from odoo.addons.l10n_br_cte_spec.models.v4_0.cte_modal_ferroviario_v4_00 import (
@@ -79,6 +78,16 @@ from ..constants.cte import (
 from ..constants.modal import CTE_MODAL_VERSION_DEFAULT
 
 CTE_XML_NAMESPACE = {"cte": "http://www.portalfiscal.inf.br/cte"}
+
+ICMS_SUB_TAGS = [
+    "ICMS00",
+    "ICMS20",
+    "ICMS45",
+    "ICMS60",
+    "ICMS90",
+    "ICMSOutraUF",
+    "ICMSSN",
+]
 
 
 _logger = logging.getLogger(__name__)
@@ -516,7 +525,7 @@ class CTe(spec_models.StackedModel):
     )
 
     cte40_CRT = fields.Selection(
-        related="company_tax_framework",
+        related="company_id.tax_framework",
         string="Código de Regime Tributário (CTe)",
     )
 
@@ -539,9 +548,9 @@ class CTe(spec_models.StackedModel):
                 stn_id = self.company_id.state_tax_number_ids.filtered(
                     lambda stn: stn.state_id == dest_state_id
                 )
-                iest = stn_id.inscr_est
+                iest = stn_id.l10n_br_ie_code
                 iest = re.sub("[^0-9]+", "", iest)
-        self.company_inscr_est_st = iest
+        self.company_l10n_br_ie_code_st = iest
 
     ##########################
     # CT-e tag: rem
@@ -587,7 +596,7 @@ class CTe(spec_models.StackedModel):
     # CT-e tag: vPrest
     ##########################
 
-    cte40_vTPrest = fields.Monetary(related="amount_total")
+    cte40_vTPrest = fields.Monetary(related="fiscal_amount_total")
 
     cte40_vRec = fields.Monetary(related="amount_price_gross")
 
@@ -1112,9 +1121,7 @@ class CTe(spec_models.StackedModel):
     @api.depends(
         "issuer",
         "company_id",
-        "company_id.partner_id.rntrc_code",
         "partner_id",
-        "partner_id.rntrc_code",
     )
     def _compute_cte40_RNTRC(self):
         for record in self.filtered(filter_processador_edoc_cte):
@@ -1192,6 +1199,15 @@ class CTe(spec_models.StackedModel):
     # Framework Spec model's methods
     ################################
 
+    @api.model
+    def _prepare_import_dict(
+        self, values, model=None, parent_dict=None, defaults_model=None
+    ):
+        return {
+            **super()._prepare_import_dict(values, model, parent_dict, defaults_model),
+            "imported_document": True,
+        }
+
     def _export_field(self, xsd_field, class_obj, member_spec, export_value=None):
         if xsd_field == "cte40_tpAmb":
             self.env.context = dict(self.env.context)
@@ -1249,8 +1265,8 @@ class CTe(spec_models.StackedModel):
         ):
             self._set_cte40_IEST()
             res = super()._export_many2one(field_name, xsd_required, class_obj)
-            if self.company_inscr_est_st:
-                res.IEST = self.company_inscr_est_st
+            if self.company_l10n_br_ie_code_st:
+                res.IEST = self.company_l10n_br_ie_code_st
             return res
 
         return super()._export_many2one(field_name, xsd_required, class_obj)
@@ -1259,39 +1275,20 @@ class CTe(spec_models.StackedModel):
     def _prepare_import_dict(
         self, values, model=None, parent_dict=None, defaults_model=None
     ):
-        return {
-            **super()._prepare_import_dict(values, model, parent_dict, defaults_model),
-            "imported_document": True,
-        }
-
-    def _build_attr(self, node, fields, vals, path, attr):
-        key = f"cte40_{attr[0]}"  # TODO schema wise
-        value = getattr(node, attr[0])
-
-        # if attr[0] == "any_element":  # build modal
-        #     modal_id = self._get_modal_to_build(node.any_element.__module__)
-        #     if modal_id is False:
-        #         return
-
-        #     modal_attrs = modal_id.build_attrs(value, path=path)
-        #     for chave, valor in modal_attrs.items():
-        #         vals[chave] = valor
-        #     return
-
-        if key == "cte40_mod":
-            if isinstance(value, Enum):
-                value = value.value
-
-            vals["document_type_id"] = (
+        res = super()._prepare_import_dict(values, model, parent_dict, defaults_model)
+        res["imported_document"] = True
+        if "cte40_mod" in values:
+            res["document_type_id"] = (
                 self.env["l10n_br_fiscal.document.type"]
-                .search([("code", "=", value)], limit=1)
+                .search([("code", "=", values["cte40_mod"])], limit=1)
                 .id
             )
-
-        return super()._build_attr(node, fields, vals, path, attr)
+        return res
 
     def _build_many2one(self, comodel, vals, new_value, key, value, path):
-        if key == "cte40_emit" and self.env.context.get("edoc_type") == "in":
+        if key in ("cte40_infNFe", "cte40_autXML"):
+            return  # TODO fix these imports eventually
+        elif key == "cte40_emit" and self.env.context.get("edoc_type") == "in":
             enderEmit_value = self.env["res.partner"].build_attrs(
                 value.enderEmit, path=path
             )
@@ -1704,18 +1701,72 @@ class CTe(spec_models.StackedModel):
 
         return proc_xml
 
-    def import_binding_cte(self, binding, edoc_type="out"):
+    def import_binding_cte(self, binding, edoc_type="in", dry_run=False):
+        if hasattr(binding, "CTe"):
+            binding = binding.CTe
         document = (
             self.env["cte.40.tcte_infcte"]
-            .with_context(tracking_disable=True, edoc_type=edoc_type, dry_run=False)
-            .build_from_binding("cte", "40", binding.CTe.infCte)
+            .with_context(tracking_disable=True, edoc_type=edoc_type)
+            .build_from_binding("cte", "40", binding.infCte, dry_run=dry_run)
         )
 
         if edoc_type == "in" and document.company_id.cnpj_cpf != cnpj_cpf.formata(
-            binding.CTe.infCte.emit.CNPJ
+            binding.infCte.emit.CNPJ
         ):
             document.fiscal_operation_type = "in"
             document.issuer = "partner"
+
+            icms = None
+            for icms_tag in ICMS_SUB_TAGS:
+                icms = getattr(binding.infCte.imp.ICMS, icms_tag)
+                if icms:
+                    break
+            if icms:
+                cst = icms.CST.value
+                percent = icms.pICMS if hasattr(icms, "pICMS") else None
+                base = icms.vBC if hasattr(icms, "vBC") else 0.0
+                value = icms.vICMS if hasattr(icms, "vICMS") else 0.0
+                cst_id = self.env.ref(f"l10n_br_fiscal.cst_icms_{cst}").id
+                tax_group_id = self.env.ref("l10n_br_fiscal.tax_group_icms").id
+                tax_domain = [("tax_group_id", "=", tax_group_id)]
+                if percent:
+                    tax_domain.append(("percent_amount", "=", percent))
+                tax_domain_with_cst = None
+                cst_kind = "cst_{}_id".format(self.env.context.get("edoc_type", "in"))
+                tax_domain_with_cst = tax_domain + [(cst_kind, "=", cst_id)]
+                # TODO deal with pRed like in l10n_br_nfe _import tax_attrs?
+                icms_tax_id = self.env["l10n_br_fiscal.tax"].search(
+                    tax_domain_with_cst,
+                    limit=1,
+                )
+
+                line_attrs = {
+                    "name": "Frete",  # TODO improve
+                    "price_unit": binding.infCte.vPrest.vTPrest,
+                    "quantity": 1,
+                    "fiscal_tax_ids": [Command.link(icms_tax_id.id)],
+                    "icms_cst_id": cst_id,
+                    "icms_tax_id": icms_tax_id.id,
+                    "icms_base": base,
+                    "icms_percent": percent,
+                    "icms_value": value,
+                }
+                if binding.infCte.ide.CFOP:
+                    line_attrs["cfop_id"] = (
+                        self.env["l10n_br_fiscal.cfop"]
+                        .search([("code", "=", binding.infCte.ide.CFOP)], limit=1)
+                        .id
+                    )
+
+                for comp in binding.infCte.vPrest.comp or [None]:
+                    if comp is not None:
+                        line_attrs.update(
+                            {
+                                "name": comp.xNome,
+                                "price_unit": comp.vComp,
+                            }
+                        )
+                    document.fiscal_line_ids = [Command.create(line_attrs)]
 
         return document
 

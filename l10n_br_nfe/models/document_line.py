@@ -5,6 +5,8 @@
 import sys
 from enum import Enum
 
+from nfelib.nfe.bindings.v4_0.dfe_tipos_basicos_v1_00 import Tcibs, TtribNfe
+
 from odoo import api, fields
 
 from odoo.addons.l10n_br_fiscal.constants.fiscal import (
@@ -128,7 +130,9 @@ class NFeLine(spec_models.StackedModel):
     # Grupo I. Produtos e Serviços da NF-e
     ######################################
 
-    nfe40_det_infNFe_id = fields.Many2one(related="document_id")
+    nfe40_det_infNFe_id = fields.Many2one(
+        related="document_id", string="Fiscal Document"
+    )
 
     ######################################
     # NF-e tag: prod
@@ -145,7 +149,7 @@ class NFeLine(spec_models.StackedModel):
 
     # NVE TODO
 
-    nfe40_CEST = fields.Char(related="cest_id.code_unmasked")
+    nfe40_CEST = fields.Char(related="cest_id.code_unmasked", string="CEST code")
 
     # indEscala TODO
 
@@ -215,6 +219,168 @@ class NFeLine(spec_models.StackedModel):
     ################################
     # Framework Spec model's methods
     ################################
+
+    def _export_field(self, xsd_field, class_obj, member_spec, export_value=None):
+        """Override to handle IBSCBS field export"""
+        if xsd_field == "nfe40_IBSCBS":
+            if not self.ibs_value and not self.cbs_value:
+                return False
+
+            # Get tax classification code
+            c_class_trib = "000001"
+            if self.tax_classification_id and self.tax_classification_id.code:
+                c_class_trib = self.tax_classification_id.code.zfill(6)
+
+            # Get CST code - use IBS CST if available, otherwise CBS CST
+            cst = "000"
+            if self.ibs_cst_id and self.ibs_cst_id.code:
+                cst = self.ibs_cst_id.code
+            elif self.cbs_cst_id and self.cbs_cst_id.code:
+                cst = self.cbs_cst_id.code
+
+            # Base calculation - use IBS base or CBS base, whichever is available
+            v_bc = self.ibs_base or self.cbs_base or self.price_gross
+
+            # IBS UF values - when there's only one IBS, populate IBSUF directly
+            # Use IBS percent directly for pIBSUF
+            p_ibs_uf = self.ibs_percent or 0.0
+            # Use IBS value directly for vIBSUF, or calculate from base and percent
+            if self.ibs_value:
+                v_ibs_uf = self.ibs_value
+            elif p_ibs_uf > 0 and v_bc > 0:
+                v_ibs_uf = v_bc * p_ibs_uf / 100
+            else:
+                v_ibs_uf = 0.0
+
+            # IBS Municipal values - not available yet, set to 0
+            p_ibs_mun = 0.0
+            v_ibs_mun = 0.0
+
+            # Total IBS - use IBS value directly or sum of UF + Municipal
+            v_ibs = self.ibs_value or (v_ibs_uf + v_ibs_mun)
+
+            # CBS values
+            p_cbs = self.cbs_percent or 0.0
+            v_cbs = self.cbs_value or (v_bc * p_cbs / 100) if p_cbs else 0.0
+
+            # Build gIBSUF
+            gibsuf = Tcibs.GIbsuf(
+                pIBSUF=f"{p_ibs_uf:.4f}",
+                vIBSUF=f"{v_ibs_uf:.2f}",
+            )
+
+            # Build gIBSMun
+            gibsmun = Tcibs.GIbsmun(
+                pIBSMun=f"{p_ibs_mun:.4f}",
+                vIBSMun=f"{v_ibs_mun:.2f}",
+            )
+
+            # Build gCBS
+            gcbs = Tcibs.GCbs(
+                pCBS=f"{p_cbs:.4f}",
+                vCBS=f"{v_cbs:.2f}",
+            )
+
+            # Build gIBSCBS (Tcibs)
+            gibscbs = Tcibs(
+                vBC=f"{v_bc:.2f}",
+                gIBSUF=gibsuf,
+                gIBSMun=gibsmun,
+                vIBS=f"{v_ibs:.2f}",
+                gCBS=gcbs,
+            )
+
+            # Build TtribNfe
+            ibscbs_obj = TtribNfe(
+                CST=cst,
+                cClassTrib=c_class_trib,
+                gIBSCBS=gibscbs,
+            )
+
+            return ibscbs_obj
+
+        return super()._export_field(xsd_field, class_obj, member_spec, export_value)
+
+    def _export_many2one(self, field_name, xsd_required, class_obj=None):
+        """Override to handle IBSCBS Many2one field export"""
+        if field_name == "nfe40_IBSCBS":
+            if not self.ibs_value and not self.cbs_value:
+                return False
+
+            # Get tax classification code
+            c_class_trib = "000001"
+            if self.tax_classification_id and self.tax_classification_id.code:
+                c_class_trib = self.tax_classification_id.code.zfill(6)
+
+            # Get CST code - use IBS CST if available, otherwise CBS CST
+            cst = "000"
+            if self.ibs_cst_id and self.ibs_cst_id.code:
+                cst = self.ibs_cst_id.code
+            elif self.cbs_cst_id and self.cbs_cst_id.code:
+                cst = self.cbs_cst_id.code
+
+            # Base calculation - use IBS base or CBS base, whichever is available
+            v_bc = self.ibs_base or self.cbs_base or self.price_gross
+
+            # IBS UF values - when there's only one IBS, populate IBSUF directly
+            # Use IBS percent directly for pIBSUF
+            p_ibs_uf = self.ibs_percent or 0.0
+            # Use IBS value directly for vIBSUF, or calculate from base and percent
+            if self.ibs_value:
+                v_ibs_uf = self.ibs_value
+            elif p_ibs_uf > 0 and v_bc > 0:
+                v_ibs_uf = v_bc * p_ibs_uf / 100
+            else:
+                v_ibs_uf = 0.0
+
+            # IBS Municipal values - not available yet, set to 0
+            p_ibs_mun = 0.0
+            v_ibs_mun = 0.0
+
+            # Total IBS - use IBS value directly or sum of UF + Municipal
+            v_ibs = self.ibs_value or (v_ibs_uf + v_ibs_mun)
+
+            # CBS values
+            p_cbs = self.cbs_percent or 0.0
+            v_cbs = self.cbs_value or (v_bc * p_cbs / 100) if p_cbs else 0.0
+
+            # Build gIBSUF
+            gibsuf = Tcibs.GIbsuf(
+                pIBSUF=f"{p_ibs_uf:.4f}",
+                vIBSUF=f"{v_ibs_uf:.2f}",
+            )
+
+            # Build gIBSMun
+            gibsmun = Tcibs.GIbsmun(
+                pIBSMun=f"{p_ibs_mun:.4f}",
+                vIBSMun=f"{v_ibs_mun:.2f}",
+            )
+
+            # Build gCBS
+            gcbs = Tcibs.GCbs(
+                pCBS=f"{p_cbs:.4f}",
+                vCBS=f"{v_cbs:.2f}",
+            )
+
+            # Build gIBSCBS (Tcibs)
+            gibscbs = Tcibs(
+                vBC=f"{v_bc:.2f}",
+                gIBSUF=gibsuf,
+                gIBSMun=gibsmun,
+                vIBS=f"{v_ibs:.2f}",
+                gCBS=gcbs,
+            )
+
+            # Build TtribNfe
+            ibscbs_obj = TtribNfe(
+                CST=cst,
+                cClassTrib=c_class_trib,
+                gIBSCBS=gibscbs,
+            )
+
+            return ibscbs_obj
+
+        return super()._export_many2one(field_name, xsd_required, class_obj)
 
     def _export_fields_nfe_40_prod(self, xsd_fields, class_obj, export_dict):
         nfe40_cProd = self.product_id.default_code or self.nfe40_cProd or ""
@@ -342,16 +508,17 @@ class NFeLine(spec_models.StackedModel):
 
         if (
             not self.icms_value
+            or self.icms_value <= 0
             or self.partner_id.ind_ie_dest != "9"
             or self.partner_id.state_id == self.company_id.state_id
             or self.partner_id.country_id != self.company_id.country_id
         ):
             xsd_fields.remove("nfe40_ICMSUFDest")
 
-        if not self.pisst_value:
+        if not self.pisst_value or self.pisst_value <= 0:
             xsd_fields.remove("nfe40_PISST")
 
-        if not self.cofinsst_value:
+        if not self.cofinsst_value or self.cofinsst_value <= 0:
             xsd_fields.remove("nfe40_COFINSST")
 
         if not self.cfop_id.is_import and "nfe40_II" in xsd_fields:
@@ -359,6 +526,84 @@ class NFeLine(spec_models.StackedModel):
 
         if self.document_id.document_type == "65":
             xsd_fields.remove("nfe40_IPI")
+
+        # Export IBSCBS if there are values
+        if self.ibs_value or self.cbs_value:
+            # Get tax classification code
+            c_class_trib = "000001"
+            if self.tax_classification_id and self.tax_classification_id.code:
+                c_class_trib = self.tax_classification_id.code.zfill(6)
+
+            # Get CST code - use IBS CST if available, otherwise CBS CST
+            cst = "000"
+            if self.ibs_cst_id and self.ibs_cst_id.code:
+                cst = self.ibs_cst_id.code
+            elif self.cbs_cst_id and self.cbs_cst_id.code:
+                cst = self.cbs_cst_id.code
+
+            # Base calculation - use IBS base or CBS base, whichever is available
+            v_bc = self.ibs_base or self.cbs_base or self.price_gross
+
+            # IBS UF values - when there's only one IBS, populate IBSUF directly
+            # Use IBS percent directly for pIBSUF
+            p_ibs_uf = self.ibs_percent or 0.0
+            # Use IBS value directly for vIBSUF, or calculate from base and percent
+            if self.ibs_value:
+                v_ibs_uf = self.ibs_value
+            elif p_ibs_uf > 0 and v_bc > 0:
+                v_ibs_uf = v_bc * p_ibs_uf / 100
+            else:
+                v_ibs_uf = 0.0
+
+            # IBS Municipal values - not available yet, set to 0
+            p_ibs_mun = 0.0
+            v_ibs_mun = 0.0
+
+            # Total IBS - use IBS value directly or sum of UF + Municipal
+            v_ibs = self.ibs_value or (v_ibs_uf + v_ibs_mun)
+
+            # CBS values
+            p_cbs = self.cbs_percent or 0.0
+            v_cbs = self.cbs_value or (v_bc * p_cbs / 100) if p_cbs else 0.0
+
+            # Build gIBSUF
+            gibsuf = Tcibs.GIbsuf(
+                pIBSUF=f"{p_ibs_uf:.4f}",
+                vIBSUF=f"{v_ibs_uf:.2f}",
+            )
+
+            # Build gIBSMun
+            gibsmun = Tcibs.GIbsmun(
+                pIBSMun=f"{p_ibs_mun:.4f}",
+                vIBSMun=f"{v_ibs_mun:.2f}",
+            )
+
+            # Build gCBS
+            gcbs = Tcibs.GCbs(
+                pCBS=f"{p_cbs:.4f}",
+                vCBS=f"{v_cbs:.2f}",
+            )
+
+            # Build gIBSCBS (Tcibs)
+            gibscbs = Tcibs(
+                vBC=f"{v_bc:.2f}",
+                gIBSUF=gibsuf,
+                gIBSMun=gibsmun,
+                vIBS=f"{v_ibs:.2f}",
+                gCBS=gcbs,
+            )
+
+            # Build TtribNfe and add to export_dict
+            ibscbs_obj = TtribNfe(
+                CST=cst,
+                cClassTrib=c_class_trib,
+                gIBSCBS=gibscbs,
+            )
+            export_dict["IBSCBS"] = ibscbs_obj
+        else:
+            # Remove IBSCBS from xsd_fields if no values
+            if "nfe40_IBSCBS" in xsd_fields:
+                xsd_fields.remove("nfe40_IBSCBS")
 
     ##################################################
     # NF-e tag: ICMS
@@ -397,7 +642,7 @@ class NFeLine(spec_models.StackedModel):
     nfe40_vICMSST = fields.Monetary(related="icmsst_value")
 
     # ICMS FCP ST
-    nfe40_vFCPST = fields.Monetary(related="icmsfcpst_value")
+    nfe40_vFCPST = fields.Monetary(related="icmsfcpst_value", string="vFCPST")
 
     # COLOCAR NA ORDEM
     nfe40_pICMSST = fields.Float(related="icmsst_percent", string="pICMSST")
@@ -446,39 +691,39 @@ class NFeLine(spec_models.StackedModel):
             "orig": self.nfe40_orig,
             "CST": self.icms_cst_id.code,
             "modBC": self.icms_base_type,
-            "vBC": str("%.02f" % self.icms_base),
-            "pRedBC": str("%.04f" % self.icms_reduction),
-            "pICMS": str("%.04f" % self.icms_percent),
-            "vICMS": str("%.02f" % self.icms_value),
-            "vICMSSubstituto": str("%.02f" % self.icms_substitute),
+            "vBC": f"{self.icms_base:.2f}",
+            "pRedBC": f"{self.icms_reduction:.4f}",
+            "pICMS": f"{self.icms_percent:.4f}",
+            "vICMS": f"{self.icms_value:.2f}",
+            "vICMSSubstituto": f"{self.icms_substitute:.2f}",
             # ICMS SUBSTITUIÇÃO TRIBUTÁRIA
             "modBCST": self.icmsst_base_type,
-            "pMVAST": str("%.04f" % self.icmsst_mva_percent),
-            "pRedBCST": str("%.04f" % self.icmsst_reduction),
-            "vBCST": str("%.02f" % self.icmsst_base),
-            "pICMSST": str("%.04f" % self.icmsst_percent),
-            "vICMSST": str("%.02f" % self.icmsst_value),
+            "pMVAST": f"{self.icmsst_mva_percent:.4f}",
+            "pRedBCST": f"{self.icmsst_reduction:.4f}",
+            "vBCST": f"{self.icmsst_base:.2f}",
+            "pICMSST": f"{self.icmsst_percent:.4f}",
+            "vICMSST": f"{self.icmsst_value:.2f}",
             "UFST": self.partner_id.state_id.code,
             # ICMS COBRADO ANTERIORMENTE POR SUBSTITUIÇÃO TRIBUTÁRIA
-            "vBCSTRet": str("%.02f" % self.icmsst_wh_base),
-            "pST": str("%.04f" % (self.icmsst_wh_percent + self.icmsfcp_wh_percent)),
-            "vICMSSTRet": str("%.02f" % self.icmsst_wh_value),
-            "pRedBCEfet": str("%.04f" % self.icms_effective_reduction),
-            "vBCEfet": str("%.02f" % self.icms_effective_base),
-            "pICMSEfet": str("%.04f" % self.icms_effective_percent),
-            "vICMSEfet": str("%.02f" % self.icms_effective_value),
+            "vBCSTRet": f"{self.icmsst_wh_base:.2f}",
+            "pST": f"{(self.icmsst_wh_percent + self.icmsfcp_wh_percent):.4f}",
+            "vICMSSTRet": f"{self.icmsst_wh_value:.2f}",
+            "pRedBCEfet": f"{self.icms_effective_reduction:.4f}",
+            "vBCEfet": f"{self.icms_effective_base:.2f}",
+            "pICMSEfet": f"{self.icms_effective_percent:.4f}",
+            "vICMSEfet": f"{self.icms_effective_value:.2f}",
             # ICMS SIMPLES NACIONAL
             "CSOSN": self.icms_cst_id.code,
-            "pCredSN": str("%.04f" % self.icmssn_percent),
-            "vCredICMSSN": str("%.02f" % self.icmssn_credit_value),
+            "pCredSN": f"{self.icmssn_percent:.4f}",
+            "vCredICMSSN": f"{self.icmssn_credit_value:.2f}",
         }
         if self.icmsfcp_wh_percent:
             icms.update(
                 {
                     # FUNDO DE COMBATE À POBREZA RETIDO
-                    "vBCFCPSTRet": str("%.02f" % self.icmsfcp_base_wh),
-                    "pFCPSTRet": str("%.04f" % self.icmsfcp_wh_percent),
-                    "vFCPSTRet": str("%.02f" % self.icmsfcp_value_wh),
+                    "vBCFCPSTRet": f"{self.icmsfcp_base_wh:.2f}",
+                    "pFCPSTRet": f"{self.icmsfcp_wh_percent:.4f}",
+                    "vFCPSTRet": f"{self.icmsfcp_value_wh:.2f}",
                 }
             )
         if (
@@ -489,25 +734,25 @@ class NFeLine(spec_models.StackedModel):
             icms.update(
                 {
                     # FUNDO DE COMBATE À POBREZA
-                    "vBCFCP": str("%.02f" % self.icmsfcp_base),
-                    "pFCP": str("%.04f" % self.icmsfcp_percent),
-                    "vFCP": str("%.02f" % self.icmsfcp_value),
+                    "vBCFCP": f"{self.icmsfcp_base:.2f}",
+                    "pFCP": f"{self.icmsfcp_percent:.4f}",
+                    "vFCP": f"{self.icmsfcp_value:.2f}",
                 }
             )
         if self.icmsfcpst_percent:
             icms.update(
                 {
                     # FUNDO DE COMBATE À POBREZA - COM ST
-                    "vBCFCPST": str("%.02f" % self.icmsfcpst_base),
-                    "pFCPST": str("%.04f" % self.icmsfcpst_percent),
-                    "vFCPST": str("%.02f" % self.icmsfcpst_value),
+                    "vBCFCPST": f"{self.icmsfcpst_base:.2f}",
+                    "pFCPST": f"{self.icmsfcpst_percent:.4f}",
+                    "vFCPST": f"{self.icmsfcpst_value:.2f}",
                 }
             )
         if self.icms_relief_id:
             icms.update(
                 {
                     # DESONERAÇÃO DO IMCS
-                    "vICMSDeson": str("%.02f" % self.icms_relief_value),
+                    "vICMSDeson": f"{self.icms_relief_value:.2f}",
                     "motDesICMS": self.icms_relief_id.code,
                 }
             )
@@ -578,7 +823,7 @@ class NFeLine(spec_models.StackedModel):
     def _compute_nfe40_ICMSUFDest(self):
         for record in self:
             if record.icms_origin_percent:
-                record.nfe40_pICMSInter = str("%.02f" % record.icms_origin_percent)
+                record.nfe40_pICMSInter = f"{record.icms_origin_percent:.2f}"
             else:
                 record.nfe40_pICMSInter = False
 
@@ -684,7 +929,7 @@ class NFeLine(spec_models.StackedModel):
 
     nfe40_vII = fields.Monetary(related="ii_value")
 
-    nfe40_vIOF = fields.Monetary(related="ii_iof_value")
+    nfe40_vIOF = fields.Monetary(related="ii_iof_value", string="vIOF")
 
     ###############
     # NF-e tag: PIS
@@ -933,6 +1178,16 @@ class NFeLine(spec_models.StackedModel):
 
     # TODO
 
+    #######################################
+    # NF-e tag: IBSCBS
+    # Grupo M. Tributos IBS e CBS
+    #######################################
+
+    nfe40_IBSCBS = fields.Many2one(
+        comodel_name="nfe.40.ttribnfe",
+        string="Grupo de informações dos tributos IBS, CBS",
+    )
+
     #################
     # NF-e tag: ISSQN
     # Grupo U. ISSQN
@@ -1078,7 +1333,7 @@ class NFeLine(spec_models.StackedModel):
         return values
 
     def _build_attr(self, node, fields, vals, path, attr):
-        key = "nfe40_%s" % (attr[0])
+        key = f"nfe40_{attr[0]}"
         value = getattr(node, attr[0])
         if key in ["nfe40_CST", "nfe40_modBC", "nfe40_CSOSN"]:
             return  # (dealt with in _build_many2one)

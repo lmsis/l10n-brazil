@@ -19,7 +19,7 @@
         <field name="website">www.transportadora.com.br</field>
         <field name="phone">(11) 9999-9999</field>
         <field name="email">teste@teste.com.br</field>
-        <field name="inscr_est">115.106.496.207</field>
+        <field name="l10n_br_ie_code">115.106.496.207</field>
         <field name="is_company" eval="1" />
         <field name="active" eval="1" />
     </record>
@@ -72,8 +72,9 @@
         <field name="antt_code">Teste - Código ANTT</field>
         <field
             name="vehicle_ids"
-            eval="[(6,0,[ref('test_l10n_br_delivery_carrier_vehicle_1'),
-            ref('test_l10n_br_delivery_carrier_vehicle_2'),
+            eval="[Command.set([
+                ref('test_l10n_br_delivery_carrier_vehicle_1'),
+                ref('test_l10n_br_delivery_carrier_vehicle_2')
             ])]"
         />
     </record>

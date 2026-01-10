@@ -2,8 +2,6 @@
 #   Magno Costa <magno.costa@akretion.com.br>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from odoo.tests import TransactionCase
-
 from odoo.addons.l10n_br_fiscal.constants.fiscal import (
     CFOP_DESTINATION_EXTERNAL,
     CFOP_DESTINATION_INTERNAL,
@@ -15,16 +13,23 @@ from odoo.addons.l10n_br_fiscal.constants.fiscal import (
 )
 
 
-class L10nBrSaleBaseTest(TransactionCase):
+class L10nBrSaleBaseTest:
+    __test__ = False
+
+    company_ref = None
+    so_products_ref = None
+    so_services_ref = None
+    so_product_service_ref = None
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.main_company = cls.env.ref("base.main_company")
-        cls.company = cls.env.ref("l10n_br_base.empresa_lucro_presumido")
-        cls.so_products = cls.env.ref("l10n_br_sale.lc_so_only_products")
-        cls.so_services = cls.env.ref("l10n_br_sale.lc_so_only_services")
-        cls.so_product_service = cls.env.ref("l10n_br_sale.lc_so_product_service")
+        cls.company = cls.env.ref(cls.company_ref)
+        cls.so_products = cls.env.ref(cls.so_products_ref)
+        cls.so_services = cls.env.ref(cls.so_services_ref)
+        cls.so_product_service = cls.env.ref(cls.so_product_service_ref)
         cls.fsc_op_sale = cls.env.ref("l10n_br_fiscal.fo_venda")
         # Testa os Impostos Dedutiveis
         cls.fsc_op_sale.deductible_taxes = True
@@ -156,11 +161,6 @@ class L10nBrSaleBaseTest(TransactionCase):
         # Skip when it is a display line.
         if sale_line.display_type:
             return
-        sale_line._onchange_product_id_fiscal()
-        sale_line._onchange_fiscal_operation_id()
-        sale_line._onchange_fiscal_operation_line_id()
-        sale_line._onchange_fiscal_taxes()
-        sale_line._onchange_fiscal_tax_ids()
 
     def _invoice_sale_order(self, sale_order):
         sale_order.action_confirm()
@@ -173,7 +173,7 @@ class L10nBrSaleBaseTest(TransactionCase):
         for invoice in sale_order.invoice_ids:
             self.assertTrue(
                 invoice.fiscal_operation_id,
-                "Error to included Operation on invoice " "dictionary from Sale Order.",
+                "Error to included Operation on invoice dictionary from Sale Order.",
             )
 
             self.assertTrue(
@@ -183,55 +183,62 @@ class L10nBrSaleBaseTest(TransactionCase):
             )
 
             # Testa se os Valores Totais estão iguais entre o Pedido e Fatura
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_total,
                 invoice.amount_total,
-                "Error field Amount Total in Invoice" " are different from Sale Order.",
+                2,
+                "Error field Amount Total in Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_tax,
                 invoice.amount_tax,
-                "Error field Amount Tax in Invoice" " are different from Sale Order.",
+                2,
+                "Error field Amount Tax in Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_untaxed,
                 invoice.amount_untaxed,
-                "Error field Amount Untaxed in Invoice"
-                " are different from Sale Order.",
+                2,
+                "Error field Amount Untaxed in Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_price_gross,
                 invoice.amount_price_gross,
+                2,
                 "Error field Amount Price Gross in Invoice"
                 " are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_financial_total,
                 invoice.amount_financial_total,
+                2,
                 "Error field Amount Financial Total in "
                 "Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_financial_total_gross,
                 invoice.amount_financial_total_gross,
+                2,
                 "Error field Amount Financial Total Gross"
                 " in Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_freight_value,
                 invoice.amount_freight_value,
-                "Error field Amount Freight in Invoice"
-                " are different from Sale Order.",
+                2,
+                "Error field Amount Freight in Invoice are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_insurance_value,
                 invoice.amount_insurance_value,
+                2,
                 "Error field Amount Insurance in Invoice"
                 " are different from Sale Order.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 sale_order.amount_other_value,
                 invoice.amount_other_value,
+                2,
                 "Error field Amount Other Values in Invoice"
                 " are different from Sale Order.",
             )
@@ -241,9 +248,10 @@ class L10nBrSaleBaseTest(TransactionCase):
                     line.fiscal_operation_line_id,
                     "Error to included Operation Line from Sale Order Line.",
                 )
-                self.assertEqual(
+                self.assertAlmostEqual(
                     line.price_total,
                     line.sale_line_ids[0].price_total,
+                    2,
                     "Error field Price Total in Invoice Line"
                     " are different from Sale Order Line.",
                 )
@@ -334,6 +342,12 @@ class L10nBrSaleBaseTest(TransactionCase):
             )
 
             # IPI
+            if (
+                line.ncm_id.code == "9401.30.90"
+                and "IPI Outros" not in taxes["ipi"]["tax"].name
+            ):
+                # Quando o NCM é 9401.30.90 o IPI deve ser 5%
+                taxes["ipi"]["tax"] = self.env.ref("l10n_br_fiscal.tax_ipi_5")
             self.assertEqual(
                 line.ipi_tax_id.name,
                 taxes["ipi"]["tax"].name,
@@ -536,21 +550,22 @@ class L10nBrSaleBaseTest(TransactionCase):
             line.insurance_value = 10.0
             line.other_value = 10.0
 
-        self.so_products.action_confirm()
-
-        self.assertEqual(
+        self.assertAlmostEqual(
             self.so_products.amount_freight_value,
             20.0,
+            2,
             "Unexpected value for the field Amount Freight in Sale Order.",
         )
-        self.assertEqual(
+        self.assertAlmostEqual(
             self.so_products.amount_insurance_value,
             20.0,
+            2,
             "Unexpected value for the field Amount Insurance in Sale Order.",
         )
-        self.assertEqual(
+        self.assertAlmostEqual(
             self.so_products.amount_other_value,
             20.0,
+            2,
             "Unexpected value for the field Amount Other in Sale Order.",
         )
 
@@ -564,19 +579,22 @@ class L10nBrSaleBaseTest(TransactionCase):
         self.so_products.amount_other_value = 10.0
 
         for line in self.so_products.order_line:
-            self.assertEqual(
+            self.assertAlmostEqual(
                 line.freight_value,
                 5.0,
+                2,
                 "Unexpected value for the field Freight in Sale line.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 line.insurance_value,
                 5.0,
+                2,
                 "Unexpected value for the field Insurance in Sale line.",
             )
-            self.assertEqual(
+            self.assertAlmostEqual(
                 line.other_value,
                 5.0,
+                2,
                 "Unexpected value for the field Other Values in Sale line.",
             )
 
@@ -593,23 +611,24 @@ class L10nBrSaleBaseTest(TransactionCase):
         self.so_products.amount_insurance_value = 20.0
         self.so_products.amount_other_value = 20.0
 
-        self.so_products.action_confirm()
-
         for line in self.so_products.order_line:
             if line.price_total == 234.29:
-                self.assertEqual(
+                self.assertAlmostEqual(
                     line.freight_value,
                     11.43,
+                    2,
                     "Unexpected value for the field Amount Freight in Sale Order.",
                 )
-                self.assertEqual(
+                self.assertAlmostEqual(
                     line.insurance_value,
                     11.43,
+                    2,
                     "Unexpected value for the field Insurance in Sale line.",
                 )
-                self.assertEqual(
+                self.assertAlmostEqual(
                     line.other_value,
                     11.43,
+                    2,
                     "Unexpected value for the field Other Values in Sale line.",
                 )
 

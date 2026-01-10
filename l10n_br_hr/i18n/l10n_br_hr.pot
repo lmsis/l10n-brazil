@@ -153,6 +153,11 @@ msgid "Companies"
 msgstr ""
 
 #. module: l10n_br_hr
+#: model:ir.model,name:l10n_br_hr.model_res_partner
+msgid "Contact"
+msgstr ""
+
+#. module: l10n_br_hr
 #: model:ir.model.fields,field_description:l10n_br_hr.field_hr_employee__emergency_phone
 msgid "Contact Phone"
 msgstr ""
@@ -433,7 +438,7 @@ msgid "Name"
 msgstr ""
 
 #. module: l10n_br_hr
-#: model:ir.model.fields,help:l10n_br_hr.field_hr_employee__rg
+#: model:ir.model.fields,help:l10n_br_hr.field_hr_employee__l10n_br_rg_code
 msgid "National ID number"
 msgstr ""
 
@@ -469,7 +474,7 @@ msgid "Parents names"
 msgstr ""
 
 #. module: l10n_br_hr
-#: model:ir.model.fields,field_description:l10n_br_hr.field_hr_employee__rg
+#: model:ir.model.fields,field_description:l10n_br_hr.field_hr_employee__l10n_br_rg_code
 msgid "RG"
 msgstr ""
 
@@ -515,6 +520,14 @@ msgid "Terceirizados"
 msgstr ""
 
 #. module: l10n_br_hr
+#: model:ir.model.fields,help:l10n_br_hr.field_hr_employee__cpf
+msgid ""
+"The Tax Identification Number. Values here will be validated based on the "
+"country format. You can use '/' to indicate that the partner is not subject "
+"to tax."
+msgstr ""
+
+#. module: l10n_br_hr
 #: model:ir.model.fields.selection,name:l10n_br_hr.selection__hr_employee__cresv_categ__3
 msgid "Third Category"
 msgstr ""
@@ -522,6 +535,12 @@ msgstr ""
 #. module: l10n_br_hr
 #: model:ir.model.fields,field_description:l10n_br_hr.field_hr_employee__employee_relationship_type
 msgid "Tipo de Colaborador"
+msgstr ""
+
+#. module: l10n_br_hr
+#: model:ir.model.fields,field_description:l10n_br_hr.field_res_partner__union_entity_code
+#: model:ir.model.fields,field_description:l10n_br_hr.field_res_users__union_entity_code
+msgid "Union Entity code"
 msgstr ""
 
 #. module: l10n_br_hr

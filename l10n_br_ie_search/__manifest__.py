@@ -5,7 +5,7 @@
     "name": "Brazilian Localization IE Search",
     "summary": """
         Integração com a API SintegraWS e SEFAZ""",
-    "version": "16.0.1.3.2",
+    "version": "16.0.2.2.0",
     "license": "AGPL-3",
     "author": "KMEE,Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/l10n-brazil",
@@ -13,10 +13,10 @@
     "data": ["views/res_config_settings_view.xml"],
     "external_dependencies": {
         "python": [
-            "erpbrasil.base>=2.3.0",
-            "erpbrasil.transmissao>=1.1.0",
-            "erpbrasil.assinatura>=1.7.0",
-            "erpbrasil.edoc>=2.5.2",
+            "erpbrasil.base",
+            "erpbrasil.transmissao",
+            "erpbrasil.assinatura",
+            "erpbrasil.edoc",
         ]
     },
 }

@@ -8,9 +8,6 @@ class ContractLine(models.Model):
     _name = "contract.line"
     _inherit = [_name, "l10n_br_fiscal.document.line.mixin"]
 
-    company_id = fields.Many2one(
-        related="contract_id.company_id",
-    )
     country_id = fields.Many2one(related="company_id.country_id", store=True)
 
     fiscal_tax_ids = fields.Many2many(
@@ -48,10 +45,6 @@ class ContractLine(models.Model):
         self.ensure_one()
 
         contract = self.contract_id
-
-        if contract.contract_recalculate_taxes_before_invoice:
-            self._onchange_fiscal_operation_id()
-
         invoice_line_vals = super()._prepare_invoice_line()
 
         # Por algum motivo com a localização o campo company_currency_id
@@ -60,12 +53,12 @@ class ContractLine(models.Model):
             {"company_currency_id": contract.company_id.currency_id.id}
         )
 
-        self._onchange_fiscal_tax_ids()
         quantity = invoice_line_vals.get("quantity")
 
         tax_ids = self.fiscal_tax_ids.account_taxes(
             user_type=contract.contract_type,
             fiscal_operation=contract.fiscal_operation_id,
+            company=contract.company_id,
         )
 
         if invoice_line_vals:

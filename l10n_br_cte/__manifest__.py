@@ -4,7 +4,7 @@
 {
     "name": "CT-e",
     "summary": """Brazilian Electronic Invoice CT-e""",
-    "version": "16.0.4.0.0",
+    "version": "16.0.9.0.0",
     "category": "Localisation",
     "license": "AGPL-3",
     "author": "KMEE, Escodoo, Odoo Community Association (OCA)",
@@ -45,10 +45,10 @@
     "auto_install": False,
     "external_dependencies": {
         "python": [
-            "nfelib<=2.0.7",
-            "erpbrasil.assinatura>=1.7.0",
-            "erpbrasil.transmissao>=1.1.0",
-            "erpbrasil.edoc>=2.5.2",
+            "nfelib",
+            "erpbrasil.assinatura",
+            "erpbrasil.transmissao",
+            "erpbrasil.edoc",
         ],
     },
 }

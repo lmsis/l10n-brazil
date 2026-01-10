@@ -76,6 +76,10 @@ class FocusnfeNfse(models.AbstractModel):
                 params=params,
                 auth=auth,
             )
+            if response.status_code == 422:
+                payload = response.json()
+                msg = payload.get("mensagem") or ""
+                raise UserError(f"Error communicating with NFSe service: {msg}")
             response.raise_for_status()  # Raises an error for 4xx/5xx responses
             return response
         except requests.HTTPError as e:
@@ -138,7 +142,7 @@ class FocusnfeNfse(models.AbstractModel):
             "prestador": self._prepare_provider_data(rps_info, company),
             "servico": self._prepare_service_data(service_info, company),
             "tomador": self._prepare_recipient_data(
-                recipient_info, recipient_identification
+                recipient_info, recipient_identification, company
             ),
             "razao_social": company.name,
             "data_emissao": rps_info.get("data_emissao"),
@@ -147,8 +151,10 @@ class FocusnfeNfse(models.AbstractModel):
             "optante_simples_nacional": rps_info.get("optante_simples_nacional", False),
             "regime_especial_tributacao": rps_info.get("regime_especial_tributacao", False),
             "status": rps_info.get("status"),
-            "informacoes_adicionais_contribuinte": rps_info.get(
-                "customer_additional_data", False
+            "informacoes_adicionais_contribuinte": (
+                rps_info.get("customer_additional_data", False)[:256]
+                if rps_info.get("customer_additional_data")
+                else False
             ),
         }
         codigo_obra = rps_info.get("codigo_obra", False)
@@ -189,7 +195,9 @@ class FocusnfeNfse(models.AbstractModel):
             dict: The service section of the payload.
         """
         return {
-            "aliquota": service.get("aliquota"),
+            "aliquota": service.get("aliquota")
+            if company.focusnfe_tax_rate_format == "decimal"
+            else round(service.get("aliquota", 0.0) * 100, 1),
             "base_calculo": round(service.get("base_calculo", 0), 2),
             "discriminacao": service.get("discriminacao"),
             "iss_retido": service.get("iss_retido"),
@@ -206,27 +214,54 @@ class FocusnfeNfse(models.AbstractModel):
             "valor_deducoes": round(service.get("valor_deducoes", 0), 2),
             "fonte_total_tributos": service.get("fonte_total_tributos", "IBPT"),
             "desconto_incondicionado": round(
-                service.get("desconto_incondicionado", 0), 2
+                service.get("valor_desconto_incondicionado", 0), 2
             ),
             "desconto_condicionado": round(service.get("desconto_condicionado", 0), 2),
             "outras_retencoes": round(service.get("outras_retencoes", 0), 2),
             "valor_servicos": round(service.get("valor_servicos", 0), 2),
             "valor_liquido": round(service.get("valor_liquido_nfse", 0), 2),
             "codigo_tributario_municipio": service.get("codigo_tributacao_municipio"),
+            "codigo_nbs": service.get("codigo_nbs"),
+            "codigo_indicador_operacao": service.get("codigo_indicador_operacao"),
+            "codigo_classificacao_tributaria": service.get(
+                "codigo_classificacao_tributaria"
+            ),
+            "codigo_situacao_tributaria": service.get("codigo_situacao_tributaria"),
+            "ibs_cbs_base_calculo": service.get("ibs_cbs_base_calculo"),
+            "ibs_uf_aliquota": round(service.get("ibs_uf_aliquota", 0), 2)
+            if service.get("ibs_uf_aliquota")
+            else None,
+            "ibs_mun_aliquota": 0.0,
+            "cbs_aliquota": round(service.get("cbs_aliquota", 0), 2)
+            if service.get("cbs_aliquota")
+            else None,
+            "ibs_uf_valor": round(service.get("ibs_uf_valor", 0), 2)
+            if service.get("ibs_uf_valor")
+            else None,
+            "ibs_mun_valor": 0.0,
+            "cbs_valor": round(service.get("cbs_valor", 0), 2)
+            if service.get("cbs_valor")
+            else None,
         }
 
-    def _prepare_recipient_data(self, recipient, identification):
+    def _prepare_recipient_data(self, recipient, identification, company):
         """Construct the recipient section of the payload.
 
         Args:
             recipient (dict): Information about the service recipient.
             identification (dict): The recipient's identification (CPF or CNPJ).
-
+            company (recordset): The company record.
         Returns:
             dict: The recipient section of the payload.
         """
+
+        if recipient.get("nif"):
+            recipient["codigo_municipio"] = company.city_id.ibge_code
+
         return {
             **identification,
+            "nif": recipient.get("nif"),
+            "nif_motivo_ausencia": recipient.get("nif_motivo_ausencia"),
             "razao_social": recipient.get("razao_social"),
             "email": recipient.get("email"),
             "endereco": {

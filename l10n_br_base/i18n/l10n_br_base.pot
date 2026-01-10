@@ -3885,17 +3885,6 @@ msgid "Bálsamo"
 msgstr ""
 
 #. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__cei_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__cei_code
-msgid "CEI Code"
-msgstr ""
-
-#. module: l10n_br_base
-#: model_terms:ir.ui.view,arch_db:l10n_br_base.l10n_br_base_res_company_form
-msgid "CNPJ..."
-msgstr ""
-
-#. module: l10n_br_base
 #: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__cnpj_cpf
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_company__cnpj_cpf
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__cnpj_cpf
@@ -3940,18 +3929,6 @@ msgstr ""
 #: model:ir.model.fields.selection,name:l10n_br_base.selection__res_partner_pix__key_type__cnpj_cpf
 #, python-format
 msgid "CPF or CNPJ"
-msgstr ""
-
-#. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__crc_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__crc_code
-msgid "CRC Code"
-msgstr ""
-
-#. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__crc_state_id
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__crc_state_id
-msgid "CRC State"
 msgstr ""
 
 #. module: l10n_br_base
@@ -11285,12 +11262,6 @@ msgid "Is Br Partner"
 msgstr ""
 
 #. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__is_accountant
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__is_accountant
-msgid "Is accountant?"
-msgstr ""
-
-#. module: l10n_br_base
 #: model:ir.model.fields,help:l10n_br_base.field_res_partner__is_br_partner
 #: model:ir.model.fields,help:l10n_br_base.field_res_users__is_br_partner
 msgid "Is it a Brazilian partner?"
@@ -13183,14 +13154,6 @@ msgstr ""
 #: model:ir.model.fields,help:l10n_br_base.field_res_partner__pix_key_ids
 #: model:ir.model.fields,help:l10n_br_base.field_res_users__pix_key_ids
 msgid "Keys for Brazilian instant payment (pix)"
-msgstr ""
-
-#. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__l10n_br_isuf_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_company__l10n_br_isuf_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__l10n_br_isuf_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__l10n_br_isuf_code
-msgid "L10N Br Isuf Code"
 msgstr ""
 
 #. module: l10n_br_base
@@ -15903,11 +15866,19 @@ msgid "Munhoz de Melo"
 msgstr ""
 
 #. module: l10n_br_base
+#: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__l10n_br_im_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_company__l10n_br_im_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__l10n_br_im_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__l10n_br_im_code
+msgid "Municipal Tax Number"
+msgstr ""
+
+#. module: l10n_br_base
 #: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__inscr_mun
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_company__inscr_mun
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__inscr_mun
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_users__inscr_mun
-msgid "Municipal Tax Number"
+msgid "Municipal Tax Number alias"
 msgstr ""
 
 #. module: l10n_br_base
@@ -20181,18 +20152,10 @@ msgid "Quixeré"
 msgstr ""
 
 #. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__rg
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_company__rg
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__rg
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__rg
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__l10n_br_rg_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__l10n_br_rg_code
 #: model_terms:ir.ui.view,arch_db:l10n_br_base.l10n_br_base_partner_form
 msgid "RG"
-msgstr ""
-
-#. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__rntrc_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__rntrc_code
-msgid "RNTRC Code"
 msgstr ""
 
 #. module: l10n_br_base
@@ -23325,12 +23288,20 @@ msgid "State"
 msgstr ""
 
 #. module: l10n_br_base
+#: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__l10n_br_ie_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_company__l10n_br_ie_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__l10n_br_ie_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__l10n_br_ie_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_state_tax_numbers__l10n_br_ie_code
+msgid "State Tax Number"
+msgstr ""
+
+#. module: l10n_br_base
 #: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__inscr_est
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_company__inscr_est
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__inscr_est
 #: model:ir.model.fields,field_description:l10n_br_base.field_res_users__inscr_est
-#: model:ir.model.fields,field_description:l10n_br_base.field_state_tax_numbers__inscr_est
-msgid "State Tax Number"
+msgid "State Tax Number alias"
 msgstr ""
 
 #. module: l10n_br_base
@@ -23398,6 +23369,10 @@ msgid "Sud Mennucci"
 msgstr ""
 
 #. module: l10n_br_base
+#: model:ir.model.fields,field_description:l10n_br_base.field_l10n_br_base_party_mixin__l10n_br_isuf_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_company__l10n_br_isuf_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__l10n_br_isuf_code
+#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__l10n_br_isuf_code
 #: model_terms:ir.ui.view,arch_db:l10n_br_base.l10n_br_base_res_company_form
 msgid "Suframa"
 msgstr ""
@@ -26478,12 +26453,6 @@ msgstr ""
 #. module: l10n_br_base
 #: model:res.city,name:l10n_br_base.city_4128302
 msgid "Uniflor"
-msgstr ""
-
-#. module: l10n_br_base
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_partner__union_entity_code
-#: model:ir.model.fields,field_description:l10n_br_base.field_res_users__union_entity_code
-msgid "Union Entity code"
 msgstr ""
 
 #. module: l10n_br_base

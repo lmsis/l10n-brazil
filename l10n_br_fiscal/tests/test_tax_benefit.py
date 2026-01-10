@@ -35,19 +35,12 @@ class TestTaxBenefit(TransactionCase):
                 "state": "approved",
             }
         )
+        # force update
+        cls.nfe_tax_benefit.fiscal_line_ids._compute_fiscal_tax_ids()
 
     def test_nfe_tax_benefit(self):
         """Test NFe with tax benefit."""
-
-        self.nfe_tax_benefit._onchange_fiscal_operation_id()
-
         for line in self.nfe_tax_benefit.fiscal_line_ids:
-            line._onchange_product_id_fiscal()
-            line._onchange_commercial_quantity()
-            line._onchange_fiscal_operation_id()
-            line._onchange_fiscal_operation_line_id()
-            line._onchange_fiscal_taxes()
-
             self.assertEqual(
                 line.icms_tax_benefit_id,
                 self.tax_benefit,

@@ -92,9 +92,9 @@ class Registro0000(models.Model):
             "NOME": record.legal_name,
             "CNPJ": misc.punctuation_rm(record.cnpj_cpf),
             "UF": record.state_id.code,
-            "IE": misc.punctuation_rm(record.inscr_est),
+            "IE": misc.punctuation_rm(record.l10n_br_ie_code),
             "COD_MUN": record.city_id.ibge_code,
-            "IM": misc.punctuation_rm(record.inscr_mun or ""),
+            "IM": misc.punctuation_rm(record.l10n_br_im_code or ""),
             # "IND_SIT_ESP": (will use the declaration field directly),
             # "IND_SIT_INI_PER": (will use the declaration field directly),
             "IND_NIRE": 0,  # TODO
@@ -203,10 +203,10 @@ class Registro0150(models.Model):
             "CPF": not record.is_company and misc.punctuation_rm(record.cnpj_cpf) or "",
             "NIT": 0,  # Número de Identificação do Trabalhador, Pis, Pasep, SUS.
             "UF": record.state_id.code,
-            "IE": misc.punctuation_rm(record.inscr_est),
+            "IE": misc.punctuation_rm(record.l10n_br_ie_code),
             "IE_ST": 0,  # Inscrição Estadual do participante na unidade da feder...
             "COD_MUN": misc.punctuation_rm(record.city_id.ibge_code),
-            "IM": misc.punctuation_rm(record.inscr_mun or ""),
+            "IM": misc.punctuation_rm(record.l10n_br_im_code or ""),
             "SUFRAMA": record.l10n_br_isuf_code
             or "",  # Inscrição da entidade na SUFRAMA
         }
@@ -502,10 +502,11 @@ class RegistroI200(models.Model):
         return {
             "NUM_LCTO": record.name,  # Número ou Código de identificação
             "DT_LCTO": record.create_date,  # Data do lançamento.
-            "VL_LCTO": record.amount_total,  # Valor do lançamento.
+            "VL_LCTO": record.fiscal_amount_total,  # Valor do lançamento.
             "IND_LCTO": "N",
             "DT_LCTO_EXT": record.date,  # O Data de ocorrência dos fatos
-            "VL_LCTO_MF": record.amount_total,  # Valor do lançamento em moeda funcional
+            # Valor do lançamento em moeda funcional
+            "VL_LCTO_MF": record.fiscal_amount_total,
         }
 
 

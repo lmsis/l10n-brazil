@@ -1,7 +1,7 @@
 # Copyright (C) 2013  Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class DocumentLine(models.Model):
@@ -30,12 +30,18 @@ class DocumentLine(models.Model):
         ondelete="cascade",
     )
 
-    name = fields.Char()
+    name = fields.Char(
+        compute="_compute_name",
+        store=True,
+        precompute=True,
+        readonly=False,
+    )
 
     company_id = fields.Many2one(
         comodel_name="res.company",
         related="document_id.company_id",
         store=True,
+        precompute=True,
         string="Company",
     )
 
@@ -44,13 +50,36 @@ class DocumentLine(models.Model):
     )
 
     partner_id = fields.Many2one(
-        related="document_id.partner_id",
+        comodel_name="res.partner",
+        compute="_compute_partner_id",
         store=True,
+        precompute=True,
+        readonly=False,
+    )
+
+    # Do not depend on `document_id.partner_id`, the inverse is taking care of that
+    def _compute_partner_id(self):
+        for line in self:
+            line.partner_id = line.document_id.partner_id
+
+    uom_id = fields.Many2one(
+        comodel_name="uom.uom",
+        string="UOM",
+        compute="_compute_uom_id",
+        store=True,
+        readonly=False,
+        precompute=True,
+    )
+
+    price_unit = fields.Float(
+        digits="Product Price",
+        compute="_compute_price_unit_fiscal",
+        store=True,
+        precompute=True,
+        readonly=False,
     )
 
     quantity = fields.Float(default=1.0)
-
-    ind_final = fields.Selection(related="document_id.ind_final")
 
     # Usado para tornar Somente Leitura os campos dos custos
     # de entrega quando a definição for por Total
@@ -65,3 +94,36 @@ class DocumentLine(models.Model):
     edoc_purpose = fields.Selection(
         related="document_id.edoc_purpose",
     )
+
+    additional_data = fields.Text()
+
+    @api.depends("product_id")
+    def _compute_name(self):
+        for line in self:
+            if line.product_id:
+                line.name = line.product_id.display_name
+            else:
+                line.name = False
+
+    @api.depends("product_id")
+    def _compute_uom_id(self):
+        for line in self:
+            if line.fiscal_operation_type == "in":
+                line.uom_id = line.product_id.uom_po_id
+            else:
+                line.uom_id = line.product_id.uom_id
+
+    def __document_comment_vals(self):
+        self.ensure_one()
+        return {
+            "user": self.env.user,
+            "ctx": self._context,
+            "doc": self.document_id if hasattr(self, "document_id") else None,
+            "item": self,
+        }
+
+    def _document_comment(self):
+        for line in self:
+            line.additional_data = line.comment_ids.compute_message(
+                line.__document_comment_vals(), line.manual_additional_data
+            )

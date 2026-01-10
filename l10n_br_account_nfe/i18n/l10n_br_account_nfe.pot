@@ -109,6 +109,11 @@ msgid "99 - Outros"
 msgstr ""
 
 #. module: l10n_br_account_nfe
+#: model:ir.model,name:l10n_br_account_nfe.model_account_move_reversal
+msgid "Account Move Reversal"
+msgstr ""
+
+#. module: l10n_br_account_nfe
 #: model:account.payment.mode,name:l10n_br_account_nfe.demo_payment_mode_boleto
 msgid "Boleto"
 msgstr ""
@@ -127,12 +132,25 @@ msgid "Dados das duplicatas NT 2011/004"
 msgstr ""
 
 #. module: l10n_br_account_nfe
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_bank_statement_line__nfe40_detPag
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_move__nfe40_detPag
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_payment__nfe40_detPag
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_l10n_br_fiscal_document__nfe40_detPag
+msgid "Grupo de detalhamento da forma"
+msgstr ""
+
+#. module: l10n_br_account_nfe
 #: model:ir.model,name:l10n_br_account_nfe.model_nfe_40_detpag
 #: model:ir.model.fields,help:l10n_br_account_nfe.field_account_bank_statement_line__nfe40_detPag
 #: model:ir.model.fields,help:l10n_br_account_nfe.field_account_move__nfe40_detPag
 #: model:ir.model.fields,help:l10n_br_account_nfe.field_account_payment__nfe40_detPag
 #: model:ir.model.fields,help:l10n_br_account_nfe.field_l10n_br_fiscal_document__nfe40_detPag
 msgid "Grupo de detalhamento da forma de pagamento."
+msgstr ""
+
+#. module: l10n_br_account_nfe
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_nfe_40_detpag__nfe40_indPag
+msgid "Indicador da Forma de Pagamento"
 msgstr ""
 
 #. module: l10n_br_account_nfe
@@ -144,6 +162,11 @@ msgstr ""
 #. module: l10n_br_account_nfe
 #: model:ir.model,name:l10n_br_account_nfe.model_l10n_br_fiscal_document
 msgid "Informações de exportação"
+msgstr ""
+
+#. module: l10n_br_account_nfe
+#: model:ir.model,name:l10n_br_account_nfe.model_account_move
+msgid "Journal Entry"
 msgstr ""
 
 #. module: l10n_br_account_nfe
@@ -167,6 +190,11 @@ msgstr ""
 #. module: l10n_br_account_nfe
 #: model:ir.model.fields.selection,name:l10n_br_account_nfe.selection__nfe_40_detpag__nfe40_indPag__0
 msgid "Pagamento à Vista"
+msgstr ""
+
+#. module: l10n_br_account_nfe
+#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_move_reversal__payment_mode_id
+msgid "Payment Mode"
 msgstr ""
 
 #. module: l10n_br_account_nfe
@@ -198,17 +226,4 @@ msgstr ""
 #. module: l10n_br_account_nfe
 #: model:ir.model,name:l10n_br_account_nfe.model_ir_actions_report
 msgid "Report Action"
-msgstr ""
-
-#. module: l10n_br_account_nfe
-#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_bank_statement_line__nfe40_detPag
-#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_move__nfe40_detPag
-#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_account_payment__nfe40_detPag
-#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_l10n_br_fiscal_document__nfe40_detPag
-msgid "detPag"
-msgstr ""
-
-#. module: l10n_br_account_nfe
-#: model:ir.model.fields,field_description:l10n_br_account_nfe.field_nfe_40_detpag__nfe40_indPag
-msgid "indPag"
 msgstr ""

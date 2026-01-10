@@ -111,20 +111,17 @@ class StockMove(models.Model):
                     ).account_taxes(
                         user_type=user_type[0],
                         fiscal_operation=record.fiscal_operation_id,
+                        company=record.company_id,
                     )
 
                     if tax_ids:
                         record.tax_ids = tax_ids
 
-    @api.onchange("product_id", "product_uom", "product_uom_qty", "price_unit")
+    @api.onchange("product_id", "fiscal_operation_id", "price_unit")
     def _onchange_product_quantity(self):
-        """To call the method in the mixin to update
-        the price and fiscal quantity."""
-        result = self._onchange_commercial_quantity()
-
-        # No Brasil o caso de Ordens de Entrega com Operação Fiscal
-        # de Saída precisam informar o Preço de Custo e não o de Venda
-        # ex.: Simples Remessa, Remessa p/ Industrialiazação e etc.
+        """No Brasil o caso de Ordens de Entrega com Operação Fiscal
+        de Saída precisam informar o Preço de Custo e não o de Venda
+        ex.: Simples Remessa, Remessa p/ Industrialiazação e etc."""
         if (
             self.fiscal_operation_id.fiscal_operation_type == "out"
             and self.price_unit == 0.0
@@ -132,8 +129,6 @@ class StockMove(models.Model):
             self.price_unit = self.product_id.with_company(
                 self.company_id
             ).standard_price
-
-        return result
 
     def _get_new_picking_values(self):
         """Prepares a new picking for this move as it could not be assigned to
@@ -221,42 +216,13 @@ class StockMove(models.Model):
 
         return result
 
-    @api.onchange("product_id")
-    def _onchange_product_id_fiscal(self):
-        # Metodo super altera o price_unit
-        # TODO: Isso deveria ser resolvido no metodo principal?
-        if self.picking_id.fiscal_operation_id:
-            price_unit = self.price_unit
-            result = super()._onchange_product_id_fiscal()
-            # Valor informado pelo usuario tem prioridade
-            if self.product_id and price_unit == 0.0:
-                price_unit = self._get_price_unit()
-
-            self.price_unit = price_unit
-
-            return result
-
     def _split(self, qty, restrict_partner_id=False):
         new_moves_vals = super()._split(qty, restrict_partner_id)
         if not self.fiscal_operation_id:
             # Caso Brasil se caracteriza por ter Operação Fiscal
             return new_moves_vals
 
-        self._onchange_commercial_quantity()
-        self._onchange_fiscal_taxes()
-
         for new_move_vals in new_moves_vals:
-            product_id = new_move_vals.get("product_id")
-            price_unit = new_move_vals.get("price_unit")
-            quantity = new_move_vals.get("product_uom_qty")
-            uom_id = new_move_vals.get("uom_id")
-            uot_id = new_move_vals.get("uot_id")
-
-            new_move_vals.update(
-                self._update_fiscal_quantity(
-                    product_id, price_unit, quantity, uom_id, uot_id
-                )
-            )
             new_move_vals.update(self._prepare_br_fiscal_dict())
 
         return new_moves_vals
@@ -265,6 +231,12 @@ class StockMove(models.Model):
     def _compute_fiscal_price(self):
         for record in self:
             record.fiscal_price = record.price_unit
+
+    @api.depends("product_id", "state")
+    def _compute_product_fiscal_fields(self):
+        # Skip compute for "done" records
+        moves = self.filtered(lambda m: m.state != "done")
+        return super(StockMove, moves)._compute_product_fiscal_fields()
 
     def _get_taxes(self, fiscal_position, inv_type):
         """

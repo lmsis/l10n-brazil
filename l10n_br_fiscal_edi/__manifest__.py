@@ -9,7 +9,7 @@
     "maintainers": ["renatonlima", "rvalyi", "mileo"],
     "website": "https://github.com/OCA/l10n-brazil",
     "development_status": "Beta",
-    "version": "16.0.1.5.2",
+    "version": "16.0.1.9.0",
     "depends": [
         "l10n_br_fiscal",
     ],
@@ -32,8 +32,6 @@
         "views/l10n_br_fiscal_action.xml",
         # Menus
         "views/l10n_br_fiscal_menu.xml",
-        # Wizards
-        "wizards/document_import_wizard_mixin.xml",
     ],
     "installable": True,
 }

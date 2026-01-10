@@ -68,26 +68,42 @@ class CNABBatch(models.Model):
         payment_way_id = bank_lines[0].cnab_payment_way_id
         type_code = bank_lines[0].service_type
         batch = CnabBatch()
+        # Initialize the counter for seq_record_detail
+        seq_record_detail_counter = 0
 
         # HEADER
-        batch.header = self.get_header().output(
-            pay_order,
-            RecordType.HEADER_BATCH,
-            seq_batch=seq_batch,
-            payment_way_code=payment_way_id.code,
-            patment_type_code=type_code,
-        )
+        for header_line in self.get_header():
+            batch.header.append(
+                header_line.output(
+                    pay_order,
+                    RecordType.HEADER_BATCH,
+                    seq_batch=seq_batch,
+                    payment_way_code=payment_way_id.code,
+                    payment_type_code=type_code,
+                )
+            )
 
         # DETAIL RECORDS
+
         for count, bank_line in enumerate(bank_lines, 1):
             detail_record = CnabDetailRecord(name=str(count))
+            # Determine the base seq_record_detail value for this bank_line iteration
+            current_record_detail_seq = count
             for segment_t in self.get_segments():
                 if segment_t.is_requerid(payment_way_id):
+                    if self.cnab_structure_id.unique_seq_per_segment:
+                        seq_record_detail_counter += 1
+                    segment_seq_detail = (
+                        seq_record_detail_counter
+                        if self.cnab_structure_id.unique_seq_per_segment
+                        else current_record_detail_seq
+                    )
+
                     segment = segment_t.output(
                         bank_line,
                         RecordType.DETAIL_RECORD,
                         seq_batch=seq_batch,
-                        seq_record_detail=count,
+                        seq_record_detail=segment_seq_detail,
                     )
                     detail_record.segments.append(segment)
             batch.detail_records.append(detail_record)
@@ -126,10 +142,10 @@ class CNABBatch(models.Model):
                 )
             )
 
-        if len(header_line) != 1:
+        if len(header_line) < 1:
             raise UserError(
                 _(
-                    f"Batch {self.name}: One batch need to have one and only one"
+                    f"Batch {self.name}: One batch need to have at least one"
                     " header line!"
                 )
             )

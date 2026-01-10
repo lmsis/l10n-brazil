@@ -19,7 +19,7 @@ class Partner(models.Model):
     @property
     def _rec_names_search(self):
         names = super()._rec_names_search
-        names += ["cnpj_cpf_stripped", "legal_name", "inscr_est"]
+        names += ["cnpj_cpf_stripped", "legal_name", "l10n_br_ie_code"]
         return names
 
     def _inverse_street_data(self):
@@ -36,17 +36,7 @@ class Partner(models.Model):
             partner.street = street
         return super(Partner, not_br_partner)._inverse_street_data()
 
-    is_accountant = fields.Boolean(string="Is accountant?")
-
-    crc_code = fields.Char(string="CRC Code", size=18, unaccent=False)
-
-    crc_state_id = fields.Many2one(comodel_name="res.country.state", string="CRC State")
-
-    rntrc_code = fields.Char(string="RNTRC Code", size=12, unaccent=False)
-
-    cei_code = fields.Char(string="CEI Code", size=12, unaccent=False)
-
-    union_entity_code = fields.Char(string="Union Entity code", unaccent=False)
+    l10n_br_rg_code = fields.Char(string="RG", unaccent=False)
 
     pix_key_ids = fields.One2many(
         string="Pix Keys",
@@ -108,12 +98,12 @@ class Partner(models.Model):
         sync_children._compute_commercial_partner()
         return res
 
-    @api.constrains("vat", "inscr_est")
-    def _check_cnpj_inscr_est(self):
+    @api.constrains("vat", "l10n_br_ie_code")
+    def _check_cnpj_l10n_br_ie_code(self):
         for record in self:
             domain = []
 
-            if not record.cnpj_cpf:
+            if not record.vat:
                 return
 
             if self.env.context.get(
@@ -134,18 +124,21 @@ class Partner(models.Model):
                 ]
 
             if record.vat:
-                domain += [("vat", "=", record.vat), ("id", "!=", record.id)]
-            else:
+                domain += [
+                    ("vat", "=", record.vat),
+                    ("id", "!=", record.id),
+                    ("parent_id", "!=", record.id),
+                ]
                 return
 
             matches = record.env["res.partner"].search(domain)
             if matches:
-                if cnpj_cpf.validar_cnpj(record.cnpj_cpf):
+                if cnpj_cpf.validar_cnpj(record.vat):
                     if allow_cnpj_multi_ie == "True":
                         for partner in record.env["res.partner"].search(domain):
                             if (
-                                partner.inscr_est == record.inscr_est
-                                and record.inscr_est
+                                partner.l10n_br_ie_code == record.l10n_br_ie_code
+                                and record.l10n_br_ie_code
                             ):
                                 raise ValidationError(
                                     _(
@@ -154,7 +147,7 @@ class Partner(models.Model):
                                         "Estadual Inscription %(incr_est)s!",
                                         name=partner.name,
                                         partner_id=partner.id,
-                                        incr_est=partner.inscr_est,
+                                        incr_est=partner.l10n_br_ie_code,
                                     )
                                 )
                     else:
@@ -183,11 +176,11 @@ class Partner(models.Model):
         for record in self:
             check_cnpj_cpf(
                 record.env,
-                record.cnpj_cpf,
+                record.vat,
                 record.country_id,
             )
 
-    @api.constrains("inscr_est", "state_id", "is_company")
+    @api.constrains("l10n_br_ie_code", "state_id", "is_company")
     def _check_ie(self):
         """Checks if company register number in field insc_est is valid,
         this method call others methods because this validation is State wise
@@ -197,7 +190,10 @@ class Partner(models.Model):
         for record in self:
             if record.is_company:
                 check_ie(
-                    record.env, record.inscr_est, record.state_id, record.country_id
+                    record.env,
+                    record.l10n_br_ie_code,
+                    record.state_id,
+                    record.country_id,
                 )
 
     @api.constrains("state_tax_number_ids")
@@ -207,15 +203,15 @@ class Partner(models.Model):
         :Return: True or False.
         """
         for record in self:
-            for inscr_est_line in record.state_tax_number_ids:
+            for l10n_br_ie_code_line in record.state_tax_number_ids:
                 check_ie(
                     record.env,
-                    inscr_est_line.inscr_est,
-                    inscr_est_line.state_id,
+                    l10n_br_ie_code_line.l10n_br_ie_code,
+                    l10n_br_ie_code_line.state_id,
                     record.country_id,
                 )
 
-                if inscr_est_line.state_id.id == record.state_id.id:
+                if l10n_br_ie_code_line.state_id.id == record.state_id.id:
                     raise ValidationError(
                         _(
                             "There can only be one state tax"
@@ -224,8 +220,8 @@ class Partner(models.Model):
                     )
                 duplicate_ie = self.env["res.partner"].search(
                     [
-                        ("state_id", "=", inscr_est_line.state_id.id),
-                        ("inscr_est", "=", inscr_est_line.inscr_est),
+                        ("state_id", "=", l10n_br_ie_code_line.state_id.id),
+                        ("l10n_br_ie_code", "=", l10n_br_ie_code_line.l10n_br_ie_code),
                         ("id", "!=", record.id),
                     ]
                 )
@@ -256,12 +252,14 @@ class Partner(models.Model):
 
     def create_company(self):
         self.ensure_one()
-        res = super().create_company()
+        res = super(
+            Partner, self.with_context(allow_vat_duplicate=True)
+        ).create_company()
         if res and self.is_br_partner:
             parent = self.parent_id
             parent.legal_name = parent.name
-            parent.inscr_est = self.inscr_est
-            parent.inscr_mun = self.inscr_mun
+            parent.l10n_br_ie_code = self.l10n_br_ie_code
+            parent.l10n_br_im_code = self.l10n_br_im_code
         return res
 
     def _is_br_partner(self):

@@ -1,7 +1,5 @@
-#    Thinkopen - Brasil
-#    Copyright (C) Thinkopen Solutions (<http://www.thinkopensolutions.com.br>)
-#    Akretion
-#    Copyright (C) Akretion (<http://www.akretion.com>)
+# 2013 Copyright (C) Thinkopen Solutions (<http://www.thinkopensolutions.com.br>)
+# 2013 Copyright (C) Akretion (<http://www.akretion.com>)
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from odoo import api, fields, models
@@ -17,8 +15,8 @@ class Company(models.Model):
         return partner_fields + [
             "legal_name",
             "cnpj_cpf",
-            "inscr_est",
-            "inscr_mun",
+            "l10n_br_ie_code",
+            "l10n_br_im_code",
             "district",
             "city_id",
             "l10n_br_isuf_code",
@@ -28,37 +26,30 @@ class Company(models.Model):
         ]
 
     def _inverse_legal_name(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.legal_name = company.legal_name
 
     def _inverse_district(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.district = company.district
 
     def _inverse_street_name(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.street_name = company.street_name
 
     def _inverse_street_number(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.street_number = company.street_number
 
     def _inverse_cnpj_cpf(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.cnpj_cpf = company.cnpj_cpf
 
-    def _inverse_inscr_est(self):
-        """Write the l10n_br specific functional fields."""
+    def _inverse_l10n_br_ie_code(self):
         for company in self:
-            company.partner_id.inscr_est = company.inscr_est
+            company.partner_id.l10n_br_ie_code = company.l10n_br_ie_code
 
     def _inverse_state(self):
-        """Write the l10n_br specific functional fields."""
         for company in self:
             company.partner_id.state_id = company.state_id
 
@@ -70,10 +61,10 @@ class Company(models.Model):
                 state_tax_number_ids |= ies
             company.partner_id.state_tax_number_ids = state_tax_number_ids
 
-    def _inverse_inscr_mun(self):
+    def _inverse_l10n_br_im_code(self):
         """Write the l10n_br specific functional fields."""
         for company in self:
-            company.partner_id.inscr_mun = company.inscr_mun
+            company.partner_id.l10n_br_im_code = company.l10n_br_im_code
 
     def _inverse_city_id(self):
         """Write the l10n_br specific functional fields."""
@@ -118,9 +109,9 @@ class Company(models.Model):
         inverse="_inverse_cnpj_cpf",
     )
 
-    inscr_est = fields.Char(
+    l10n_br_ie_code = fields.Char(
         compute="_compute_address",
-        inverse="_inverse_inscr_est",
+        inverse="_inverse_l10n_br_ie_code",
     )
 
     state_tax_number_ids = fields.One2many(
@@ -131,9 +122,9 @@ class Company(models.Model):
         inverse="_inverse_state_tax_number_ids",
     )
 
-    inscr_mun = fields.Char(
+    l10n_br_im_code = fields.Char(
         compute="_compute_address",
-        inverse="_inverse_inscr_mun",
+        inverse="_inverse_l10n_br_im_code",
     )
 
     l10n_br_isuf_code = fields.Char(
@@ -176,7 +167,7 @@ class Company(models.Model):
     @api.onchange("state_id")
     def _onchange_state_id(self):
         res = super()._onchange_state_id()
-        self.inscr_est = False
-        self.partner_id.inscr_est = False
+        self.l10n_br_ie_code = False
+        self.partner_id.l10n_br_ie_code = False
         self.partner_id.state_id = self.state_id
         return res

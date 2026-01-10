@@ -1,7 +1,6 @@
 # Copyright 2020 KMEE INFORMATICA LTDA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-
 from erpbrasil.base import misc
 from lxml import etree
 
@@ -13,19 +12,22 @@ class DocumentLine(models.Model):
 
     fiscal_deductions_value = fields.Monetary(
         string="Fiscal Deductions",
-        default=0.00,
+        default=0.0,
+        compute="_compute_fiscal_deductions_value",
+        store=True,
+        readonly=False,
+        precompute=True,
     )
     other_retentions_value = fields.Monetary(
         string="Other Retentions",
-        default=0.00,
+        default=0.0,
     )
 
-    @api.onchange("product_id")
-    def _onchange_product_id_fiscal(self):
-        result = super()._onchange_product_id_fiscal()
-        if self.product_id and self.product_id.fiscal_deductions_value:
-            self.fiscal_deductions_value = self.product_id.fiscal_deductions_value
-        return result
+    @api.depends("product_id", "product_id.fiscal_deductions_value")
+    def _compute_fiscal_deductions_value(self):
+        for line in self:
+            if line.product_id and line.product_id.fiscal_deductions_value:
+                line.fiscal_deductions_value = line.product_id.fiscal_deductions_value
 
     def _compute_taxes(self, taxes, cst=None):
         discount_value = self.discount_value
@@ -66,7 +68,7 @@ class DocumentLine(models.Model):
         model_view["fields"] = xfields
         return model_view
 
-    def prepare_line_servico(self):
+    def _prepare_line_service(self):
         return {
             "valor_servicos": round(self.price_gross, 2),
             "valor_deducoes": round(self.fiscal_deductions_value, 2),
@@ -94,5 +96,17 @@ class DocumentLine(models.Model):
             "municipio_prestacao_servico": self.issqn_fg_city_id.ibge_code or "",
             "discriminacao": str(self.name[:2000] or ""),
             "codigo_cnae": misc.punctuation_rm(self.cnae_id.code) or None,
+            "codigo_nbs": self.nbs_id.code or "",
+            "codigo_indicador_operacao": self.operation_indicator_id.code or "",
+            "codigo_classificacao_tributaria": self.tax_classification_id.code
+            or "000000",
+            "codigo_situacao_tributaria": self.ibs_cst_code or "000",
+            "ibs_cbs_base_calculo": round(self.issqn_base, 2),
             "valor_desconto_incondicionado": round(self.discount_value, 2),
+            "ibs_uf_aliquota": round(self.ibs_percent, 2) if self.ibs_percent else None,
+            "ibs_mun_aliquota": 0.0,
+            "cbs_aliquota": round(self.cbs_percent, 2) if self.cbs_percent else None,
+            "ibs_uf_valor": round(self.ibs_value, 2) if self.ibs_value else None,
+            "ibs_mun_valor": 0.0,
+            "cbs_valor": round(self.cbs_value, 2) if self.cbs_value else None,
         }

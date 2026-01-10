@@ -4,7 +4,7 @@
     "name": "L10n BR Fiscal Dfe",
     "summary": """
         Distribuição de documentos fiscais""",
-    "version": "16.0.1.0.2",
+    "version": "16.0.1.2.0",
     "license": "AGPL-3",
     "author": "KMEE,Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/l10n-brazil",
@@ -18,9 +18,9 @@
     ],
     "external_dependencies": {
         "python": [
-            "erpbrasil.edoc>=2.5.2",
-            "erpbrasil.transmissao>=1.1.0",
-            "nfelib<=2.0.7",
+            "erpbrasil.edoc",
+            "erpbrasil.transmissao",
+            "nfelib",
         ],
     },
 }

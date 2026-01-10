@@ -13,6 +13,7 @@ from erpbrasil.base.fiscal import cnpj_cpf
 from erpbrasil.base.fiscal.edoc import ChaveEdoc
 from erpbrasil.transmissao import TransmissaoSOAP
 from lxml import etree
+from nfelib.nfe.bindings.v4_0.dfe_tipos_basicos_v1_00 import TibscbsmonoTot
 from nfelib.nfe.bindings.v4_0.leiaute_nfe_v4_00 import TnfeProc
 from nfelib.nfe.bindings.v4_0.nfe_v4_00 import Nfe
 from nfelib.nfe.ws.edoc_legacy import NFCeAdapter as edoc_nfce
@@ -35,7 +36,6 @@ from odoo.addons.l10n_br_fiscal.constants.fiscal import (
     EVENT_ENV_HML,
     EVENT_ENV_PROD,
     EVENTO_RECEBIDO,
-    FISCAL_PAYMENT_MODE,
     LOTE_PROCESSADO,
     MODELO_FISCAL_NFCE,
     MODELO_FISCAL_NFE,
@@ -54,6 +54,7 @@ from odoo.addons.l10n_br_fiscal.tools import remove_non_ascii_characters
 from odoo.addons.spec_driven_model.models import spec_models
 
 from ..constants.nfe import (
+    FISCAL_PAYMENT_MODE,
     NFCE_DANFE_LAYOUTS,
     NFE_DANFE_LAYOUTS,
     NFE_ENVIRONMENTS,
@@ -264,9 +265,15 @@ class NFe(spec_models.StackedModel):
 
     nfe40_finNFe = fields.Selection(related="edoc_purpose")
 
+    nfe40_tpNFDebito = fields.Selection(related="edoc_refund_debit_type")
+
+    nfe40_tpNFCredito = fields.Selection(related="edoc_refund_credit_type")
+
     nfe40_indFinal = fields.Selection(related="ind_final")
 
     nfe40_indPres = fields.Selection(related="ind_pres")
+
+    nfe40_tpEnteGov = fields.Selection(related="public_entity_type")
 
     nfe40_procEmi = fields.Selection(default="0")
 
@@ -384,7 +391,7 @@ class NFe(spec_models.StackedModel):
     )
 
     nfe40_CRT = fields.Selection(
-        related="company_tax_framework",
+        related="company_id.tax_framework",
         string="Código de Regime Tributário (NFe)",
     )
 
@@ -406,9 +413,9 @@ class NFe(spec_models.StackedModel):
                 stn_id = self.company_id.state_tax_number_ids.filtered(
                     lambda stn: stn.state_id == dest_state_id
                 )
-                iest = stn_id.inscr_est
+                iest = stn_id.l10n_br_ie_code
                 iest = re.sub("[^0-9]+", "", iest)
-        self.company_inscr_est_st = iest
+        self.company_l10n_br_ie_code_st = iest
 
     ##########################
     # NF-e tag: dest
@@ -422,7 +429,7 @@ class NFe(spec_models.StackedModel):
     )
 
     nfe40_indIEDest = fields.Selection(
-        related="partner_ind_ie_dest",
+        related="partner_id.ind_ie_dest",
         string="Contribuinte do ICMS (NFe)",
     )
 
@@ -547,9 +554,151 @@ class NFe(spec_models.StackedModel):
         related="amount_other_value",
     )
 
-    nfe40_vNF = fields.Monetary(related="amount_total")
+    nfe40_vNF = fields.Monetary(related="fiscal_amount_total")
 
     nfe40_vTotTrib = fields.Monetary(related="amount_estimate_tax")
+
+    ##########################
+    # NF-e tag: IBSCBSTot
+    ##########################
+
+    # IBSCBSTot fields - computed from document lines
+    nfe40_vBCIBSCBS = fields.Monetary(
+        string="Total Base de Calculo IBS/CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    # gIBS fields
+    nfe40_vIBS = fields.Monetary(
+        string="Valor total do IBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vCredPres = fields.Monetary(
+        string="Total do Crédito Presumido",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vCredPresCondSus = fields.Monetary(
+        string="Total do Crédito Presumido Condição Suspensiva",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    # gIBSUF fields
+    nfe40_vDifIBSUF = fields.Monetary(
+        string="Total do Diferimento IBS UF",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vDevTribIBSUF = fields.Monetary(
+        string="Total de devoluções de tributos IBS UF",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vIBSUF = fields.Monetary(
+        string="Valor total do IBS Estadual",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    # gIBSMun fields
+    nfe40_vDifIBSMun = fields.Monetary(
+        string="Total do Diferimento IBS Municipal",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vDevTribIBSMun = fields.Monetary(
+        string="Total de devoluções de tributos IBS Municipal",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vIBSMun = fields.Monetary(
+        string="Valor total do IBS Municipal",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    # gCBS fields
+    nfe40_vDifCBS = fields.Monetary(
+        string="Total do Diferimento CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vDevTribCBS = fields.Monetary(
+        string="Total de devoluções de tributos CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vCBS = fields.Monetary(
+        string="Valor total da CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vCredPresCBS = fields.Monetary(
+        string="Total do Crédito Presumido CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    nfe40_vCredPresCondSusCBS = fields.Monetary(
+        string="Total do Crédito Presumido Condição Suspensiva CBS",
+        compute="_compute_nfe40_IBSCBSTot_fields",
+    )
+
+    @api.depends(
+        "fiscal_line_ids.ibs_base",
+        "fiscal_line_ids.cbs_base",
+        "fiscal_line_ids.ibs_value",
+        "fiscal_line_ids.cbs_value",
+    )
+    def _compute_nfe40_IBSCBSTot_fields(self):
+        """Compute IBSCBSTot fields from document lines"""
+        for record in self:
+            if not record.fiscal_line_ids:
+                record.nfe40_vBCIBSCBS = 0.0
+                record.nfe40_vIBS = 0.0
+                record.nfe40_vIBSUF = 0.0
+                record.nfe40_vIBSMun = 0.0
+                record.nfe40_vCBS = 0.0
+                record.nfe40_vCredPres = 0.0
+                record.nfe40_vCredPresCondSus = 0.0
+                record.nfe40_vDifIBSUF = 0.0
+                record.nfe40_vDevTribIBSUF = 0.0
+                record.nfe40_vDifIBSMun = 0.0
+                record.nfe40_vDevTribIBSMun = 0.0
+                record.nfe40_vDifCBS = 0.0
+                record.nfe40_vDevTribCBS = 0.0
+                record.nfe40_vCredPresCBS = 0.0
+                record.nfe40_vCredPresCondSusCBS = 0.0
+                continue
+
+            # Calculate totals from lines
+            total_ibs_base = (
+                sum(record.fiscal_line_ids.mapped("ibs_base"))
+                or sum(record.fiscal_line_ids.mapped("cbs_base"))
+                or sum(record.fiscal_line_ids.mapped("price_gross"))
+            )
+
+            total_ibs_value = sum(record.fiscal_line_ids.mapped("ibs_value"))
+            total_cbs_value = sum(record.fiscal_line_ids.mapped("cbs_value"))
+
+            # Calculate IBS UF and Municipal (simplified)
+            # In a complete implementation, these should be calculated separately
+            total_ibs_uf = total_ibs_value  # Simplified
+            total_ibs_mun = 0.0  # Simplified
+
+            record.nfe40_vBCIBSCBS = total_ibs_base
+            record.nfe40_vIBS = total_ibs_value
+            record.nfe40_vIBSUF = total_ibs_uf
+            record.nfe40_vIBSMun = total_ibs_mun
+            record.nfe40_vCBS = total_cbs_value
+            record.nfe40_vCredPres = 0.0
+            record.nfe40_vCredPresCondSus = 0.0
+            record.nfe40_vDifIBSUF = 0.0
+            record.nfe40_vDevTribIBSUF = 0.0
+            record.nfe40_vDifIBSMun = 0.0
+            record.nfe40_vDevTribIBSMun = 0.0
+            record.nfe40_vDifCBS = 0.0
+            record.nfe40_vDevTribCBS = 0.0
+            record.nfe40_vCredPresCBS = 0.0
+            record.nfe40_vCredPresCondSusCBS = 0.0
 
     ##########################
     # NF-e tag: ISSQNtot
@@ -665,6 +814,58 @@ class NFe(spec_models.StackedModel):
         if xsd_field == "nfe40_tpAmb":
             self.env.context = dict(self.env.context)
             self.env.context.update({"tpAmb": self[xsd_field]})
+            return super()._export_field(
+                xsd_field, class_obj, member_spec, export_value
+            )
+
+        if xsd_field == "nfe40_IBSCBSTot":
+            total_ibs = sum(self.fiscal_line_ids.mapped("ibs_value"))
+            total_cbs = sum(self.fiscal_line_ids.mapped("cbs_value"))
+
+            if not total_ibs and not total_cbs:
+                return False
+
+            # Build gIBSUF
+            gibsuf = TibscbsmonoTot.GIbs.GIbsuf(
+                vDif=f"{self.nfe40_vDifIBSUF:.2f}",
+                vDevTrib=f"{self.nfe40_vDevTribIBSUF:.2f}",
+                vIBSUF=f"{self.nfe40_vIBSUF:.2f}",
+            )
+
+            # Build gIBSMun
+            gibsmun = TibscbsmonoTot.GIbs.GIbsmun(
+                vDif=f"{self.nfe40_vDifIBSMun:.2f}",
+                vDevTrib=f"{self.nfe40_vDevTribIBSMun:.2f}",
+                vIBSMun=f"{self.nfe40_vIBSMun:.2f}",
+            )
+
+            # Build gIBS
+            gibs = TibscbsmonoTot.GIbs(
+                gIBSUF=gibsuf,
+                gIBSMun=gibsmun,
+                vIBS=f"{self.nfe40_vIBS:.2f}",
+                vCredPres=f"{self.nfe40_vCredPres:.2f}",
+                vCredPresCondSus=f"{self.nfe40_vCredPresCondSus:.2f}",
+            )
+
+            # Build gCBS
+            gcbs = TibscbsmonoTot.GCbs(
+                vDif=f"{self.nfe40_vDifCBS:.2f}",
+                vDevTrib=f"{self.nfe40_vDevTribCBS:.2f}",
+                vCBS=f"{self.nfe40_vCBS:.2f}",
+                vCredPres=f"{self.nfe40_vCredPresCBS:.2f}",
+                vCredPresCondSus=f"{self.nfe40_vCredPresCondSusCBS:.2f}",
+            )
+
+            # Build IBSCBSTot
+            ibscbs_tot = TibscbsmonoTot(
+                vBCIBSCBS=f"{self.nfe40_vBCIBSCBS:.2f}",
+                gIBS=gibs,
+                gCBS=gcbs,
+            )
+
+            return ibscbs_tot
+
         return super()._export_field(xsd_field, class_obj, member_spec, export_value)
 
     def _export_many2one(self, field_name, xsd_required, class_obj=None):
@@ -679,6 +880,12 @@ class NFe(spec_models.StackedModel):
                 for t in self.nfe40_det.mapped("product_id.tax_icms_or_issqn")
             ):
                 return False
+
+            if field_name == "nfe40_IBSCBSTot":
+                total_ibs = sum(self.fiscal_line_ids.mapped("ibs_value"))
+                total_cbs = sum(self.fiscal_line_ids.mapped("cbs_value"))
+                if not total_ibs and not total_cbs:
+                    return False
 
             elif (not xsd_required) and field_name not in ["nfe40_enderDest"]:
                 comodel = self.env[
@@ -708,8 +915,8 @@ class NFe(spec_models.StackedModel):
         ):
             self._set_nfe40_IEST()
             res = super()._export_many2one(field_name, xsd_required, class_obj)
-            if self.company_inscr_est_st:
-                res.IEST = self.company_inscr_est_st
+            if self.company_l10n_br_ie_code_st:
+                res.IEST = self.company_l10n_br_ie_code_st
             return res
 
         return super()._export_many2one(field_name, xsd_required, class_obj)
@@ -727,23 +934,15 @@ class NFe(spec_models.StackedModel):
     def _prepare_import_dict(
         self, values, model=None, parent_dict=None, defaults_model=None
     ):
-        return {
-            **super()._prepare_import_dict(values, model, parent_dict, defaults_model),
-            "imported_document": True,
-        }
-
-    def _build_attr(self, node, fields, vals, path, attr):
-        key = f"nfe40_{attr[0]}"  # TODO schema wise
-        value = getattr(node, attr[0])
-
-        if key == "nfe40_mod":
-            vals["document_type_id"] = (
+        res = super()._prepare_import_dict(values, model, parent_dict, defaults_model)
+        res["imported_document"] = True
+        if "nfe40_mod" in values:
+            res["document_type_id"] = (
                 self.env["l10n_br_fiscal.document.type"]
-                .search([("code", "=", value)], limit=1)
+                .search([("code", "=", values["nfe40_mod"])], limit=1)
                 .id
             )
-
-        return super()._build_attr(node, fields, vals, path, attr)
+        return res
 
     def _build_many2one(self, comodel, vals, new_value, key, value, path):
         if key == "nfe40_entrega" and self.env.context.get("edoc_type") == "in":
@@ -768,16 +967,23 @@ class NFe(spec_models.StackedModel):
                 value.enderEmit, path=path
             )
             new_value.update(enderEmit_value)
-            company_cnpj = self.env.company.cnpj_cpf.translate(
+            company_vat = self.env.company.vat.translate(
                 str.maketrans("", "", string.punctuation)
             )
-            emit_cnpj = new_value.get("nfe40_CNPJ").translate(
-                str.maketrans("", "", string.punctuation)
-            )
-            if company_cnpj != emit_cnpj:
+            emit_vat = False
+            if new_value.get("nfe40_CNPJ"):
+                emit_vat = new_value.get("nfe40_CNPJ").translate(
+                    str.maketrans("", "", string.punctuation)
+                )
+                new_value["is_company"] = True
+            elif new_value.get("nfe40_CPF"):
+                emit_vat = new_value.get("nfe40_CPF").translate(
+                    str.maketrans("", "", string.punctuation)
+                )
+                new_value["is_company"] = False
+            if company_vat != emit_vat:
                 vals["issuer"] = "partner"
-            new_value["is_company"] = True
-            new_value["cnpj_cpf"] = emit_cnpj
+            new_value["vat"] = emit_vat
             super()._build_many2one(
                 self.env["res.partner"], vals, new_value, "partner_id", value, path
             )
@@ -786,16 +992,21 @@ class NFe(spec_models.StackedModel):
                 value.enderDest, path=path
             )
             new_value.update(enderDest_value)
-            company_cnpj = self.env.company.cnpj_cpf.translate(
+            company_vat = self.env.company.vat.translate(
                 str.maketrans("", "", string.punctuation)
             )
-            dest_cnpj = new_value.get("nfe40_CNPJ").translate(
-                str.maketrans("", "", string.punctuation)
-            )
-            if company_cnpj != dest_cnpj:
+            if new_value.get("nfe40_CNPJ"):
+                dest_vat = new_value.get("nfe40_CNPJ").translate(
+                    str.maketrans("", "", string.punctuation)
+                )
+            elif new_value.get("nfe40_CPF"):
+                dest_vat = new_value.get("nfe40_CPF").translate(
+                    str.maketrans("", "", string.punctuation)
+                )
+            if company_vat != dest_vat:
                 vals["issuer"] = "partner"
             new_value["is_company"] = True
-            new_value["cnpj_cpf"] = dest_cnpj
+            new_value["vat"] = dest_vat
             super()._build_many2one(
                 self.env["res.partner"], vals, new_value, "partner_id", value, path
             )
@@ -956,10 +1167,7 @@ class NFe(spec_models.StackedModel):
         result = super()._document_export()
         for record in self.filtered(filter_processador_edoc_nfe):
             edoc = record.serialize()[0]
-            processador = record._edoc_processor()
-            xml_file = processador.render_edoc_xsdata(edoc, pretty_print=pretty_print)[
-                0
-            ]
+            xml_file = edoc.to_xml()
             # Delete previous authorization events in draft
             if (
                 record.authorization_event_id
@@ -977,8 +1185,13 @@ class NFe(spec_models.StackedModel):
                 document_id=self,
             )
             record.authorization_event_id = event_id
-            xml_assinado = processador.assina_raiz(edoc, edoc.infNFe.Id)
-            self._validate_xml(xml_assinado)
+            signed_xml = edoc.sign_xml(
+                xml_file,
+                self.company_id.certificate.file,
+                self.company_id.certificate.password,
+                edoc.infNFe.Id,
+            )
+            self._validate_xml(signed_xml)
         return result
 
     def _nfe_update_status_and_save_data(self, process):
@@ -1088,9 +1301,9 @@ class NFe(spec_models.StackedModel):
 
         for record in self.filtered(filter_processador_edoc_nfe):
             required_fields_gen_edoc = []
-            if not record.company_cnpj_cpf:
+            if not record.company_id.vat:
                 required_fields_gen_edoc.append("CNPJ/CPF")
-            elif not record.company_state_id:
+            elif not record.company_id.state_id:
                 required_fields_gen_edoc.append("State Company")
             elif not record.document_type_id:
                 required_fields_gen_edoc.append("Document Type")
@@ -1107,9 +1320,11 @@ class NFe(spec_models.StackedModel):
             date = fields.Datetime.context_timestamp(record, record.document_date)
             chave_edoc = ChaveEdoc(
                 ano_mes=date.strftime("%y%m").zfill(4),
-                cnpj_cpf_emitente=record.company_cnpj_cpf,
+                cnpj_cpf_emitente=record.company_id.vat,
                 codigo_uf=(
-                    record.company_state_id and record.company_state_id.ibge_code or ""
+                    record.company_id.state_id
+                    and record.company_id.state_id.ibge_code
+                    or ""
                 ),
                 forma_emissao=int(self.nfe_transmission),
                 modelo_documento=record.document_type_id.code or "",
@@ -1359,15 +1574,17 @@ class NFe(spec_models.StackedModel):
 
         self.file_report_id = self.env["ir.attachment"].create(attachment_data)
 
-    def import_binding_nfe(self, binding, edoc_type="out"):
+    def import_binding_nfe(self, binding, edoc_type="in", dry_run=False):
+        if hasattr(binding, "NFe"):
+            binding = binding.NFe
         document = (
             self.env["nfe.40.infnfe"]
-            .with_context(tracking_disable=True, edoc_type=edoc_type, dry_run=False)
-            .build_from_binding("nfe", "40", binding.NFe.infNFe)
+            .with_context(tracking_disable=True, edoc_type=edoc_type)
+            .build_from_binding("nfe", "40", binding.infNFe, dry_run=dry_run)
         )
 
         if edoc_type == "in" and document.company_id.cnpj_cpf != cnpj_cpf.formata(
-            binding.NFe.infNFe.emit.CNPJ
+            binding.infNFe.emit.CNPJ
         ):
             document.fiscal_operation_type = "in"
             document.issuer = "partner"
@@ -1550,7 +1767,7 @@ class NFe(spec_models.StackedModel):
 
     def _prepare_nfce_danfe_values(self):
         return {
-            "company_ie": self.company_id.inscr_est,
+            "company_ie": self.company_id.l10n_br_ie_code,
             "company_cnpj": self.company_id.cnpj_cpf,
             "company_legal_name": self.company_id.legal_name,
             "company_street": self.company_id.street,
@@ -1562,7 +1779,7 @@ class NFe(spec_models.StackedModel):
             "total_product_quantity": len(
                 self.fiscal_line_ids.filtered(lambda line: line.product_id)
             ),
-            "amount_total": self.amount_total,
+            "amount_total": self.fiscal_amount_total,
             "amount_discount_value": self.amount_discount_value,
             "amount_freight_value": self.amount_freight_value,
             "payments": self._prepare_nfce_danfe_payment_values(),

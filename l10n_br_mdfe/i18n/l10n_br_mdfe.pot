@@ -1340,6 +1340,11 @@ msgid "Country"
 msgstr ""
 
 #. module: l10n_br_mdfe
+#: model:ir.model,name:l10n_br_mdfe.model_res_country_state
+msgid "Country state"
+msgstr ""
+
+#. module: l10n_br_mdfe
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_modal_aereo__create_uid
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_modal_aquaviario__create_uid
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_modal_aquaviario_carga_vazia__create_uid
@@ -1434,6 +1439,11 @@ msgstr ""
 msgid ""
 "Código Identificador da Operação de Transporte\n"
 "Também Conhecido como conta frete"
+msgstr ""
+
+#. module: l10n_br_mdfe
+#: model:ir.model.fields,field_description:l10n_br_mdfe.field_product_product__mdfe30_NCM
+msgid "Código NCM"
 msgstr ""
 
 #. module: l10n_br_mdfe
@@ -2281,7 +2291,6 @@ msgid "Grupo de informações do contrato"
 msgstr ""
 
 #. module: l10n_br_mdfe
-#: model:ir.model,name:l10n_br_mdfe.model_mdfe_30_infcontrato
 #: model:ir.model.fields,help:l10n_br_mdfe.field_l10n_br_mdfe_modal_rodoviario_contratante__mdfe30_infContrato
 msgid "Grupo de informações do contrato entre transportador e contratante"
 msgstr ""
@@ -2623,6 +2632,11 @@ msgstr ""
 msgid ""
 "Identificação do processo de emissão do Manifesto\n"
 "0 - emissão de MDF-e com aplicativo do contribuinte"
+msgstr ""
+
+#. module: l10n_br_mdfe
+#: model:ir.model,name:l10n_br_mdfe.model_l10n_br_fiscal_document_import_wizard
+msgid "Import Document Wizard"
 msgstr ""
 
 #. module: l10n_br_mdfe
@@ -3896,6 +3910,21 @@ msgid "Mdfe30 Peri Infnfe"
 msgstr ""
 
 #. module: l10n_br_mdfe
+#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qCTe
+msgid "Mdfe30 Qcte"
+msgstr ""
+
+#. module: l10n_br_mdfe
+#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qMDFe
+msgid "Mdfe30 Qmdfe"
+msgstr ""
+
+#. module: l10n_br_mdfe
+#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qNFe
+msgid "Mdfe30 Qnfe"
+msgstr ""
+
+#. module: l10n_br_mdfe
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_seguro_carga__mdfe30_seg_infMDFe_id
 msgid "Mdfe30 Seg Infmdfe"
 msgstr ""
@@ -4015,7 +4044,6 @@ msgstr ""
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_transporte_lacre__brl_currency_id
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_transporte_perigoso__brl_currency_id
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_emi__brl_currency_id
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_infcontrato__brl_currency_id
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_infentregaparcial__brl_currency_id
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_inffisco__brl_currency_id
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_infmuncarrega__brl_currency_id
@@ -4451,18 +4479,6 @@ msgid "Número do banco"
 msgstr ""
 
 #. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_infcontrato__mdfe30_NroContrato
-msgid "Número do contrato do transportador"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,help:l10n_br_mdfe.field_mdfe_30_infcontrato__mdfe30_NroContrato
-msgid ""
-"Número do contrato do transportador com o contratante quando este existir "
-"para prestações continuadas"
-msgstr ""
-
-#. module: l10n_br_mdfe
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_transporte_lacre__mdfe30_nLacre
 msgid "Número do lacre"
 msgstr ""
@@ -4888,6 +4904,15 @@ msgid "Payment"
 msgstr ""
 
 #. module: l10n_br_mdfe
+#. odoo-python
+#: code:addons/l10n_br_mdfe/models/document.py:0
+#, python-format
+msgid ""
+"Payment information (infPag) must be provided when the MDF-e contains only "
+"one DF-e (full load)."
+msgstr ""
+
+#. module: l10n_br_mdfe
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_modal_ferroviario_vagao__mdfe30_pesoBC
 msgid "Peso Base de Cálculo de Frete"
 msgstr ""
@@ -5052,36 +5077,6 @@ msgstr ""
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_transporte_carga_inf__mdfe30_qtdRat
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_transporte_inf__mdfe30_qtdRat
 msgid "Quantidade rateada (Peso,Volume)"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qCTe
-msgid "Quantidade total de CT-e relacionados"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,help:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qCTe
-msgid "Quantidade total de CT-e relacionados no Manifesto"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qMDFe
-msgid "Quantidade total de MDF-e relacionados"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,help:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qMDFe
-msgid "Quantidade total de MDF-e relacionados no Manifesto Aquaviário"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qNFe
-msgid "Quantidade total de NF-e relacionadas"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,help:l10n_br_mdfe.field_l10n_br_fiscal_document__mdfe30_qNFe
-msgid "Quantidade total de NF-e relacionadas no Manifesto"
 msgstr ""
 
 #. module: l10n_br_mdfe
@@ -6552,11 +6547,6 @@ msgid "Valor do componente"
 msgstr ""
 
 #. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_mdfe_30_infcontrato__mdfe30_vContratoGlobal
-msgid "Valor global do contrato"
-msgstr ""
-
-#. module: l10n_br_mdfe
 #: model_terms:ir.ui.view,arch_db:l10n_br_mdfe.nfe_document_edi_form_inherit
 msgid "Vehicle"
 msgstr ""
@@ -6669,11 +6659,6 @@ msgstr ""
 #. module: l10n_br_mdfe
 #: model:ir.model.fields,field_description:l10n_br_mdfe.field_l10n_br_mdfe_product_lotacao_local__mdfe30_longitude
 msgid "longitude"
-msgstr ""
-
-#. module: l10n_br_mdfe
-#: model:ir.model.fields,field_description:l10n_br_mdfe.field_product_product__mdfe30_NCM
-msgid "ncm_id.code"
 msgstr ""
 
 #. module: l10n_br_mdfe

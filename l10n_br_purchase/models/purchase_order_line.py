@@ -24,8 +24,6 @@ class PurchaseOrderLine(models.Model):
     # Adapt Mixin's fields
     fiscal_operation_id = fields.Many2one(
         comodel_name="l10n_br_fiscal.operation",
-        readonly=True,
-        states={"draft": [("readonly", False)]},
         default=_default_fiscal_operation,
         domain=lambda self: self._fiscal_operation_domain(),
     )
@@ -38,24 +36,14 @@ class PurchaseOrderLine(models.Model):
         "('state', '=', 'approved')]",
     )
 
-    fiscal_tax_ids = fields.Many2many(
-        comodel_name="l10n_br_fiscal.tax",
-        relation="fiscal_purchase_line_tax_rel",
-        column1="document_id",
-        column2="fiscal_tax_id",
-        string="Fiscal Taxes",
-    )
-
     quantity = fields.Float(
         string="Mixin Quantity",
         related="product_qty",
-        depends=["product_qty"],
     )
 
     uom_id = fields.Many2one(
         string="Mixin UOM",
         related="product_uom",
-        depends=["product_uom"],
     )
 
     tax_framework = fields.Selection(
@@ -95,32 +83,23 @@ class PurchaseOrderLine(models.Model):
         result = super()._compute_amount()
         for line in self:
             if line.fiscal_operation_id:
-                # Update taxes fields
-                line._update_fiscal_taxes()
-                # Call mixin compute method
-                line._compute_fiscal_amounts()
-                # Update record
                 line.update(
                     {
-                        "price_subtotal": line.amount_untaxed,
-                        "price_tax": line.amount_tax,
-                        "price_total": line.amount_total,
+                        "price_subtotal": line.fiscal_amount_untaxed,
+                        "price_tax": line.fiscal_amount_tax,
+                        "price_total": line.fiscal_amount_total,
                     }
                 )
         return result
-
-    @api.onchange("product_qty", "product_uom")
-    def _onchange_quantity(self):
-        """To call the method in the mixin to update
-        the price and fiscal quantity."""
-        return self._onchange_commercial_quantity()
 
     def _compute_tax_id(self):
         for line in self:
             if line.fiscal_operation_line_id:
                 res = super()._compute_tax_id()
                 line.taxes_id = line.fiscal_tax_ids.account_taxes(
-                    user_type="purchase", fiscal_operation=line.fiscal_operation_id
+                    user_type="purchase",
+                    fiscal_operation=line.fiscal_operation_id,
+                    company=line.company_id,
                 )
             else:
                 res = None
@@ -129,13 +108,11 @@ class PurchaseOrderLine(models.Model):
     @api.onchange("fiscal_tax_ids")
     def _onchange_fiscal_tax_ids(self):
         if self.fiscal_operation_line_id:
-            res = super()._onchange_fiscal_tax_ids()
             self.taxes_id = self.fiscal_tax_ids.account_taxes(
-                user_type="purchase", fiscal_operation=self.fiscal_operation_id
+                user_type="purchase",
+                fiscal_operation=self.fiscal_operation_id,
+                company=self.company_id,
             )
-        else:
-            res = None
-        return res
 
     def _prepare_account_move_line(self, move=False):
         values = super()._prepare_account_move_line(move)
@@ -159,3 +136,33 @@ class PurchaseOrderLine(models.Model):
                 partner.address_get(["invoice"]).get("invoice")
             )
         return partner
+
+    def _setup_complete(self):
+        # /!\ LOW-LEVEL OVERRIDE (registry setup) /!\
+        # The BR fiscal mixin uses many fields with precompute=True,
+        # but purchase does not have all dependencies ready at create time.
+        # Since we have hundreds of fields, instead of overriding each one,
+        # we set precompute=False dynamically here.
+        res = super()._setup_complete()
+        mixin = self.env["l10n_br_fiscal.document.line.mixin"]
+        mixin_fields = mixin._fields
+        for name, field in self._fields.items():
+            mixin_field = mixin_fields.get(name)
+            if not mixin_field:
+                continue
+            if mixin_field.compute in (
+                "_compute_price_unit_fiscal",
+                "_compute_product_fiscal_fields",
+                "_compute_fiscal_quantity",
+                "_compute_fiscal_price",
+                "_compute_fiscal_tax_ids",
+                "_compute_tax_fields",
+                "_compute_fiscal_operation_line_id",
+                "_compute_comment_ids",
+            ) and getattr(mixin_field, "precompute", False):
+                field.precompute = False
+        return res
+
+    @api.model
+    def _get_total_for_tax_totals(self):
+        return self.order_id.amount_total

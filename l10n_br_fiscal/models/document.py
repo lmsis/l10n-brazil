@@ -10,16 +10,21 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 from ..constants.fiscal import (
+    COMMENT_TYPE_COMMERCIAL,
+    COMMENT_TYPE_FISCAL,
     DOCUMENT_ISSUER_COMPANY,
     DOCUMENT_ISSUER_DICT,
     DOCUMENT_ISSUER_PARTNER,
     EDOC_PURPOSE,
     EDOC_PURPOSE_NORMAL,
+    EDOC_REFUND_CREDIT_TYPE,
+    EDOC_REFUND_DEBIT_TYPE,
     FISCAL_IN_OUT_DICT,
     MODELO_FISCAL_CTE,
     MODELO_FISCAL_NFCE,
     MODELO_FISCAL_NFE,
     MODELO_FISCAL_NFSE,
+    PUBLIC_ENTIRY_TYPE,
     SITUACAO_EDOC,
     SITUACAO_EDOC_AUTORIZADA,
     SITUACAO_EDOC_CANCELADA,
@@ -61,6 +66,7 @@ class Document(models.Model):
     _inherit = [
         "l10n_br_fiscal.document.mixin",
         "mail.thread",
+        "mail.activity.mixin",
     ]
     _description = "Fiscal Document"
     _check_company_auto = True
@@ -91,9 +97,9 @@ class Document(models.Model):
     )
 
     fiscal_operation_id = fields.Many2one(
-        domain="[('state', '=', 'approved'), "
-        "'|', ('fiscal_operation_type', '=', fiscal_operation_type),"
-        " ('fiscal_operation_type', '=', 'all')]",
+        "l10n_br_fiscal.operation",
+        string="Fiscal Operation",
+        domain="[('state', '=', 'approved')]",
     )
 
     fiscal_operation_type = fields.Selection(
@@ -138,7 +144,15 @@ class Document(models.Model):
     partner_id = fields.Many2one(
         comodel_name="res.partner",
         string="Partner",
+        inverse="_inverse_partner_id",
     )
+
+    @api.onchange("partner_id")
+    def _inverse_partner_id(self):
+        for doc in self:
+            for line in doc.fiscal_line_ids:
+                if line.partner_id != doc.partner_id:
+                    line.partner_id = doc.partner_id
 
     partner_shipping_id = fields.Many2one(
         comodel_name="res.partner",
@@ -168,6 +182,21 @@ class Document(models.Model):
         precompute=True,
     )
 
+    edoc_refund_debit_type = fields.Selection(
+        selection=EDOC_REFUND_DEBIT_TYPE,
+        string="Tipo de Nota de Débito",
+    )
+
+    edoc_refund_credit_type = fields.Selection(
+        selection=EDOC_REFUND_CREDIT_TYPE,
+        string="Tipo de Nota de Crédito",
+    )
+
+    public_entity_type = fields.Selection(
+        selection=PUBLIC_ENTIRY_TYPE,
+        string="Tipo de Entidade Governamental",
+    )
+
     document_type = fields.Char(
         string="Document Type Code",
         related="document_type_id.code",
@@ -183,9 +212,9 @@ class Document(models.Model):
     )
 
     currency_id = fields.Many2one(
+        related="company_id.currency_id",
         comodel_name="res.currency",
         string="Currency",
-        compute="_compute_currency_id",
     )
 
     # this related "state" field is required for the status bar widget
@@ -215,205 +244,29 @@ class Document(models.Model):
         ],
         string="Tomador do Serviço",
     )
-
-    # ----- Now some handy related fields:
-
     partner_legal_name = fields.Char(
         string="Legal Name",
         related="partner_id.legal_name",
     )
-
-    partner_name = fields.Char(
-        string="Partner Name",
-        related="partner_id.name",
-    )
-
     partner_cnpj_cpf = fields.Char(
         string="CNPJ",
-        related="partner_id.cnpj_cpf",
+        related="partner_id.vat",
     )
-
-    partner_inscr_est = fields.Char(
+    partner_l10n_br_ie_code = fields.Char(
         string="State Tax Number",
-        related="partner_id.inscr_est",
-    )
-
-    partner_ind_ie_dest = fields.Selection(
-        string="Contribuinte do ICMS",
-        related="partner_id.ind_ie_dest",
-    )
-
-    partner_inscr_mun = fields.Char(
-        string="Municipal Tax Number",
-        related="partner_id.inscr_mun",
-    )
-
-    partner_l10n_br_isuf_code = fields.Char(
-        string="Suframa",
-        related="partner_id.l10n_br_isuf_code",
-    )
-
-    partner_cnae_main_id = fields.Many2one(
-        comodel_name="l10n_br_fiscal.cnae",
-        string="Main CNAE",
-        related="partner_id.cnae_main_id",
-    )
-
-    partner_tax_framework = fields.Selection(
-        string="Tax Framework",
-        related="partner_id.tax_framework",
-    )
-
-    partner_street = fields.Char(
-        string="Partner Street",
-        related="partner_id.street",
-    )
-
-    partner_number = fields.Char(
-        string="Partner Number",
-        related="partner_id.street_number",
-    )
-
-    partner_street2 = fields.Char(
-        string="Partner Street2",
-        related="partner_id.street2",
-    )
-
-    partner_district = fields.Char(
-        string="Partner District",
-        related="partner_id.district",
-    )
-
-    partner_country_id = fields.Many2one(
-        comodel_name="res.country",
-        string="Partner Country",
-        related="partner_id.country_id",
-    )
-
-    partner_state_id = fields.Many2one(
-        comodel_name="res.country.state",
-        string="Partner State",
-        related="partner_id.state_id",
-    )
-
-    partner_city_id = fields.Many2one(
-        comodel_name="res.city",
-        string="Partner City",
-        related="partner_id.city_id",
-    )
-
-    partner_zip = fields.Char(
-        string="Partner Zip",
-        related="partner_id.zip",
-    )
-
-    partner_phone = fields.Char(
-        string="Partner Phone",
-        related="partner_id.phone",
-    )
-
-    partner_is_company = fields.Boolean(
-        string="Partner Is Company?",
-        related="partner_id.is_company",
+        related="partner_id.l10n_br_ie_code",
     )
 
     processador_edoc = fields.Selection(
         related="company_id.processador_edoc",
     )
-
-    company_legal_name = fields.Char(
-        string="Company Legal Name",
-        related="company_id.legal_name",
-    )
-
-    company_name = fields.Char(
-        string="Company Name",
-        size=128,
-        related="company_id.name",
-    )
-
-    company_cnpj_cpf = fields.Char(
-        string="Company CNPJ",
-        related="company_id.cnpj_cpf",
-    )
-
-    company_inscr_est = fields.Char(
-        string="Company State Tax Number",
-        related="company_id.inscr_est",
-    )
-
-    company_inscr_est_st = fields.Char(
+    company_l10n_br_ie_code_st = fields.Char(
         string="Company ST State Tax Number",
     )
 
-    company_inscr_mun = fields.Char(
-        string="Company Municipal Tax Number",
-        related="company_id.inscr_mun",
-    )
+    fiscal_additional_data = fields.Text()
 
-    company_l10n_br_isuf_code = fields.Char(
-        string="Company Suframa",
-        related="company_id.l10n_br_isuf_code",
-    )
-
-    company_cnae_main_id = fields.Many2one(
-        comodel_name="l10n_br_fiscal.cnae",
-        string="Company Main CNAE",
-        related="company_id.cnae_main_id",
-    )
-
-    company_tax_framework = fields.Selection(
-        string="Company Tax Framework",
-        related="company_id.tax_framework",
-    )
-
-    company_street = fields.Char(
-        string="Company Street",
-        related="company_id.street",
-    )
-
-    company_number = fields.Char(
-        string="Company Number",
-        related="company_id.street_number",
-    )
-
-    company_street2 = fields.Char(
-        string="Company Street2",
-        related="company_id.street2",
-    )
-
-    company_district = fields.Char(
-        string="Company District",
-        related="company_id.district",
-    )
-
-    company_country_id = fields.Many2one(
-        comodel_name="res.country",
-        string="Company Country",
-        related="company_id.country_id",
-    )
-
-    company_state_id = fields.Many2one(
-        comodel_name="res.country.state",
-        string="Company State",
-        related="company_id.state_id",
-    )
-
-    company_city_id = fields.Many2one(
-        comodel_name="res.city",
-        string="Company City",
-        related="company_id.city_id",
-    )
-
-    company_zip = fields.Char(
-        string="Company ZIP",
-        related="company_id.zip",
-    )
-
-    company_phone = fields.Char(
-        string="Company Phone",
-        related="company_id.phone",
-    )
+    customer_additional_data = fields.Text()
 
     @api.constrains("document_key")
     def _check_key(self):
@@ -486,10 +339,18 @@ class Document(models.Model):
                     )
                 )
 
-    @api.depends("company_id")
-    def _compute_currency_id(self):
-        for doc in self:
-            doc.currency_id = doc.company_id.currency_id or self.env.company.currency_id
+    @api.onchange("fiscal_operation_type")
+    def _onchange_fiscal_operation_type(self):
+        domain = [("state", "=", "approved")]
+        if self.fiscal_operation_type:
+            domain.append(("fiscal_operation_type", "=", self.fiscal_operation_type))
+        if (
+            self.fiscal_operation_id
+            and self.fiscal_operation_id.fiscal_operation_type
+            != self.fiscal_operation_type
+        ):
+            self.fiscal_operation_id = False
+        return {"domain": {"fiscal_operation_id": domain}}
 
     def _compute_document_name(self):
         self.ensure_one()
@@ -510,19 +371,19 @@ class Document(models.Model):
             name += "/" + type_serie_number
             if self.document_date:
                 name += " - " + self.document_date.strftime("%d/%m/%Y")
-            if not self.partner_cnpj_cpf:
+            if not self.partner_id.vat:
                 name += " - " + _("Unidentified Consumer")
-            elif self.partner_legal_name:
-                name += " - " + self.partner_legal_name
-                name += " - " + self.partner_cnpj_cpf
+            elif self.partner_id.legal_name:
+                name += " - " + self.partner_id.legal_name
+                name += " - " + self.partner_id.vat
             else:
-                name += " - " + self.partner_name
-                name += " - " + self.partner_cnpj_cpf
+                name += " - " + self.partner_id.name
+                name += " - " + self.partner_id.vat
         elif self._context.get("fiscal_document_no_company"):
             name += type_serie_number
         else:
             name += "{name}/{type_serie_number}".format(
-                name=self.company_name or "",
+                name=self.company_id.name or "",
                 type_serie_number=type_serie_number,
             )
         return name
@@ -546,22 +407,9 @@ class Document(models.Model):
         for r in self:
             r.name = r._compute_document_name()
 
-    @api.depends(
-        "fiscal_line_ids.estimate_tax",
-        "fiscal_line_ids.price_gross",
-        "fiscal_line_ids.amount_untaxed",
-        "fiscal_line_ids.amount_tax",
-        "fiscal_line_ids.amount_taxed",
-        "fiscal_line_ids.amount_total",
-        "fiscal_line_ids.financial_total",
-        "fiscal_line_ids.financial_total_gross",
-        "fiscal_line_ids.financial_discount_value",
-        "fiscal_line_ids.amount_tax_included",
-        "fiscal_line_ids.amount_tax_not_included",
-        "fiscal_line_ids.amount_tax_withholding",
-    )
-    def _compute_fiscal_amount(self):
-        return super()._compute_fiscal_amount()
+    @api.model
+    def _get_fiscal_lines_field_name(self):
+        return "fiscal_line_ids"
 
     def unlink(self):
         forbidden_states_unlink = [
@@ -596,7 +444,6 @@ class Document(models.Model):
 
             new_doc = record.copy()
             new_doc.fiscal_operation_id = fsc_op
-            new_doc._onchange_fiscal_operation_id()
 
             for line in new_doc.fiscal_line_ids:
                 fsc_op_line = line.fiscal_operation_id.return_fiscal_operation_id
@@ -608,9 +455,6 @@ class Document(models.Model):
                         ).format(line.fiscal_operation_id)
                     )
                 line.fiscal_operation_id = fsc_op_line
-                line._onchange_fiscal_operation_id()
-                line._onchange_fiscal_operation_line_id()
-
             return_docs |= new_doc
         return return_docs
 
@@ -660,13 +504,26 @@ class Document(models.Model):
         for record in self:
             record.edoc_purpose = record.fiscal_operation_id.edoc_purpose
 
-    @api.onchange("fiscal_operation_id")
-    def _onchange_fiscal_operation_id(self):
-        result = super()._onchange_fiscal_operation_id()
-        if self.fiscal_operation_id:
-            self.fiscal_operation_type = self.fiscal_operation_id.fiscal_operation_type
+    def __document_comment_vals(self):
+        return {
+            "user": self.env.user,
+            "ctx": self._context,
+            "doc": self,
+        }
 
-        if self.issuer == DOCUMENT_ISSUER_COMPANY and not self.document_type_id:
-            self.document_type_id = self.company_id.document_type_id
+    def _document_comment(self):
+        for d in self:
+            # Fiscal Comments
+            d.fiscal_additional_data = d.comment_ids.filtered(
+                lambda c: c.comment_type == COMMENT_TYPE_FISCAL
+            ).compute_message(
+                d.__document_comment_vals(), d.manual_fiscal_additional_data
+            )
 
-        return result
+            # Commercial Comments
+            d.customer_additional_data = d.comment_ids.filtered(
+                lambda c: c.comment_type == COMMENT_TYPE_COMMERCIAL
+            ).compute_message(
+                d.__document_comment_vals(), d.manual_customer_additional_data
+            )
+            d.fiscal_line_ids._document_comment()

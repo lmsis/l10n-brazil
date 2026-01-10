@@ -61,7 +61,7 @@ class TestSaleStock(TestBrPickingInvoicingCommon):
         # set stock.picking to be invoiced
         self.assertTrue(
             len(self.so.picking_ids) == 1,
-            "More than one stock " "picking for sale.order",
+            "More than one stock picking for sale.order",
         )
         self.so.picking_ids.set_to_be_invoiced()
 
@@ -110,8 +110,8 @@ class TestSaleStock(TestBrPickingInvoicingCommon):
             "fiscal_price",
             "amount_fiscal",
             "price_unit",
-            "amount_untaxed",
-            "amount_total",
+            "fiscal_amount_untaxed",
+            "fiscal_amount_total",
         ]
         skipped_fields[len(skipped_fields) :] = skipped_fields_after_confirm
 
@@ -130,6 +130,12 @@ class TestSaleStock(TestBrPickingInvoicingCommon):
         Test Sale Order with product and service
         """
         sale_order_2 = self.env.ref("l10n_br_sale_stock.main_company-sale_order_2")
+        self.env.ref(
+            "l10n_br_sale_stock.main_company-sale_order_line_2_1"
+        ).product_id.list_price = 500
+        self.env.ref(
+            "l10n_br_sale_stock.main_company-sale_order_line_2_4"
+        ).product_id.list_price = 100
         sale_order_form = Form(sale_order_2)
         sale_order = sale_order_form.save()
         sale_order.action_confirm()

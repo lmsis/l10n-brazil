@@ -138,9 +138,9 @@ class L10nBrCNABBoletoFields(models.AbstractModel):
         tracking=True,
     )
 
-    boleto_interest_code = fields.Char(
+    boleto_interest_code_id = fields.Many2one(
         string="Código da Mora",
-        size=1,
+        comodel_name="l10n_br_cnab.code",
         help="Código adotado pela FEBRABAN para identificação "
         "do tipo de pagamento de mora de juros.",
         tracking=True,
@@ -152,9 +152,9 @@ class L10nBrCNABBoletoFields(models.AbstractModel):
         tracking=True,
     )
 
-    boleto_fee_code = fields.Char(
-        string="Código da Multa",
-        size=1,
+    boleto_fee_code_id = fields.Many2one(
+        string="Fee Code",
+        comodel_name="l10n_br_cnab.code",
         help="Código adotado pela FEBRABAN para identificação "
         "do tipo de pagamento de multa.",
         tracking=True,
@@ -199,7 +199,7 @@ class L10nBrCNABBoletoFields(models.AbstractModel):
 
     rebate_account_id = fields.Many2one(
         comodel_name="account.account",
-        string="Conta Contabil de Abatimanto",
+        string="Conta Contabil de Abatimento",
         help="Conta padrão para Abatimento",
         tracking=True,
     )
@@ -252,18 +252,26 @@ class L10nBrCNABBoletoFields(models.AbstractModel):
         tracking=True,
     )
 
+    # Código para Alteração da Data de Desconto
+    change_discount_date_code_id = fields.Many2one(
+        comodel_name="l10n_br_cnab.code",
+        string="Change Discount Date Movement Instruction Code",
+        help="CNAB Movement Instruction Code for Change Discount Date.",
+        tracking=True,
+    )
+
     # Codigo para Protestar Título
     protest_title_code_id = fields.Many2one(
         comodel_name="l10n_br_cnab.code",
-        string="Protest Tittle Instruction Code",
-        help="CNAB Movement Instruction Code for Protest Tittle.",
+        string="Protest Title Instruction Code",
+        help="CNAB Movement Instruction Code for Protest Title.",
         tracking=True,
     )
 
     # Codigo para Suspender Protesto e Manter em Carteira
     suspend_protest_keep_wallet_code_id = fields.Many2one(
         comodel_name="l10n_br_cnab.code",
-        string="Suspend Protest an Keep in Wallet Instruction Code",
+        string="Suspend Protest and Keep in Wallet Instruction Code",
         help="CNAB Movement Instruction Code for"
         " Suspend Protest and Keep in Wallet.",
         tracking=True,
@@ -272,8 +280,8 @@ class L10nBrCNABBoletoFields(models.AbstractModel):
     # Codigo para Suspender Protesto e Baixar Título
     suspend_protest_write_off_code_id = fields.Many2one(
         comodel_name="l10n_br_cnab.code",
-        string="Suspend Protest an Writte Off Instruction Code",
-        help="CNAB Movement Instruction Code for Suspend Protest and Writte Off.",
+        string="Suspend Protest and Write Off Instruction Code",
+        help="CNAB Movement Instruction Code for Suspend Protest and Write Off.",
         tracking=True,
     )
 

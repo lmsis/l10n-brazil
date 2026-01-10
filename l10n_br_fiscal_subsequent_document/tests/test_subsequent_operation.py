@@ -21,11 +21,11 @@ class TestSubsequentOperation(TransactionCase):
     def test_subsequent_operation_simple_faturamento(self):
         """Test Fiscal Subsequent Operation Simples Faturamento"""
 
-        self.nfe_simples_faturamento._onchange_fiscal_operation_id()
-
-        for line in self.nfe_simples_faturamento.fiscal_line_ids:
-            line._onchange_product_id_fiscal()
-            line._onchange_fiscal_taxes()
+        # TODO this legacy onchange was overriden in this module
+        # but the code went broken and it it was commented out.
+        # later the onchange in the l10n_br_fiscal module was converted
+        # to a compute so this onchange might need rework here:
+        # self.nfe_simples_faturamento._onchange_fiscal_operation_id()
 
         self.nfe_simples_faturamento.state_edoc = "a_enviar"
         self.nfe_simples_faturamento._generates_subsequent_operations()

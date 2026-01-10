@@ -16,7 +16,7 @@ class L10nBrBaseOnchangeTest(TransactionCase):
             .create(
                 {
                     "name": "Company Test 1",
-                    "cnpj_cpf": "02.960.895/0001-31",
+                    "vat": "02.960.895/0001-31",
                     "city_id": cls.env.ref("l10n_br_base.city_3205002").id,
                     "zip": "29161-695",
                 }
@@ -60,11 +60,11 @@ class L10nBrBaseOnchangeTest(TransactionCase):
         self.partner_01._onchange_state_id()
 
     def test_inverse_fields(self):
-        self.company_01.inscr_mun = "692015742119"
+        self.company_01.l10n_br_im_code = "692015742119"
         self.assertEqual(
-            self.company_01.partner_id.inscr_mun,
+            self.company_01.partner_id.l10n_br_im_code,
             "692015742119",
-            "The inverse function to field inscr_mun failed.",
+            "The inverse function to field l10n_br_im_code failed.",
         )
         self.company_01.l10n_br_isuf_code = "1234"
         self.assertEqual(

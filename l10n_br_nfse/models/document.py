@@ -107,7 +107,7 @@ class Document(models.Model):
             cidade_ibge=int(self.company_id.partner_id.city_id.ibge_code),
             cnpj_prestador=misc.punctuation_rm(self.company_id.partner_id.cnpj_cpf),
             im_prestador=misc.punctuation_rm(
-                self.company_id.partner_id.inscr_mun or ""
+                self.company_id.partner_id.l10n_br_im_code or ""
             ),
         )
 
@@ -162,9 +162,14 @@ class Document(models.Model):
         base_calculo = 0
         valor_liquido_nfse = 0
         valor_desconto_incondicionado = 0
+        ibs_cbs_base_calculo = 0
+        ibs_uf_aliquota = 0
+        cbs_aliquota = 0
+        ibs_uf_valor = 0
+        cbs_valor = 0
 
         for line in lines:
-            result_line.update(line.prepare_line_servico())
+            result_line.update(line._prepare_line_service())
             valor_servicos += result_line.get("valor_servicos")
             valor_deducoes += result_line.get("valor_deducoes")
             valor_pis += result_line.get("valor_pis")
@@ -185,6 +190,11 @@ class Document(models.Model):
             valor_desconto_incondicionado += result_line.get(
                 "valor_desconto_incondicionado"
             )
+            ibs_cbs_base_calculo += result_line.get("ibs_cbs_base_calculo")
+            ibs_uf_aliquota += result_line.get("ibs_uf_aliquota") or 0
+            cbs_aliquota += result_line.get("cbs_aliquota") or 0
+            ibs_uf_valor += result_line.get("ibs_uf_valor") or 0
+            cbs_valor += result_line.get("cbs_valor") or 0
 
         result = {
             "valor_servicos": valor_servicos,
@@ -221,14 +231,31 @@ class Document(models.Model):
             "codigo_cnae": misc.punctuation_rm(self.fiscal_line_ids[0].cnae_id.code)
             or None,
             "valor_desconto_incondicionado": valor_desconto_incondicionado,
+            "codigo_nbs": self.fiscal_line_ids[0].nbs_id.code,
+            "codigo_indicador_operacao": self.fiscal_line_ids[
+                0
+            ].operation_indicator_id.code,
+            "codigo_classificacao_tributaria": self.fiscal_line_ids[
+                0
+            ].tax_classification_id.code,
+            "codigo_situacao_tributaria": self.fiscal_line_ids[0].cbs_cst_code,
+            "ibs_cbs_base_calculo": ibs_cbs_base_calculo,
+            "ibs_uf_aliquota": ibs_uf_aliquota if ibs_uf_aliquota else None,
+            "ibs_mun_aliquota": 0.0,
+            "cbs_aliquota": cbs_aliquota if cbs_aliquota else None,
+            "ibs_uf_valor": ibs_uf_valor if ibs_uf_valor else None,
+            "ibs_mun_valor": 0.0,
+            "cbs_valor": cbs_valor if cbs_valor else None,
         }
 
-        result.update(self.company_id.prepare_company_servico())
+        result.update(self.company_id._prepare_company_service())
 
         return result
 
     def _prepare_dados_tomador(self):
-        result = self.partner_id.prepare_partner_tomador(self.company_id.country_id.id)
+        result = self.partner_id._prepare_service_provider(
+            self.company_id.country_id.id
+        )
 
         result.update({"complemento": self.partner_shipping_id.street2 or None})
 
@@ -239,7 +266,7 @@ class Document(models.Model):
         return {
             "cnpj": misc.punctuation_rm(self.company_id.partner_id.cnpj_cpf),
             "inscricao_municipal": misc.punctuation_rm(
-                self.company_id.partner_id.inscr_mun or ""
+                self.company_id.partner_id.l10n_br_im_code or ""
             )
             or None,
             "id": "rps" + str(num_rps),
@@ -263,19 +290,19 @@ class Document(models.Model):
             "intermediario_servico": None,
             "codigo_obra": self.civil_construction_code or "",
             "art": self.civil_construction_art or "",
-            "carga_tributaria": self.amount_tax,
+            "carga_tributaria": self.fiscal_amount_tax,
             "total_recebido": self.amount_price_gross,
             "carga_tributaria_estimada": self.amount_estimate_tax,
             "customer_additional_data": self.customer_additional_data,
             "fiscal_additional_data": self.fiscal_additional_data,
         }
 
-    def convert_type_nfselib(self, class_object, object_filed, value):
+    def _convert_binding_value_to_odoo(self, binding_type, object_filed, value):
         if value is None:
             return value
 
         value_type = ""
-        for field in class_object().member_data_items_:
+        for field in binding_type().member_data_items_:
             if field.name == object_filed:
                 value_type = field.child_attrs.get("type", "").replace("xsd:", "")
                 break

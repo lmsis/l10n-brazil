@@ -4,9 +4,9 @@
 import base64
 import re
 import string
-from enum import Enum
 from unicodedata import normalize
 
+from erpbrasil.base.fiscal import cnpj_cpf
 from erpbrasil.base.fiscal.edoc import ChaveEdoc
 from erpbrasil.base.misc import punctuation_rm
 from erpbrasil.transmissao import TransmissaoSOAP
@@ -14,7 +14,8 @@ from nfelib.mdfe.bindings.v3_0.mdfe_v3_00 import Mdfe
 from nfelib.nfe.ws.edoc_legacy import MDFeAdapter as edoc_mdfe
 from requests import Session
 
-from odoo import Command, api, fields
+from odoo import Command, _, api, fields
+from odoo.exceptions import UserError
 
 from odoo.addons.l10n_br_fiscal.constants.fiscal import (
     EVENT_ENV_HML,
@@ -680,15 +681,25 @@ class MDFe(spec_models.StackedModel):
     # NF-e tag: tot
     ##########################
 
-    mdfe30_qCTe = fields.Char(compute="_compute_mdfe30_tot")
+    mdfe30_qCTe = fields.Integer(
+        compute="_compute_mdfe30_tot", store=True, readonly=False
+    )
 
-    mdfe30_qNFe = fields.Char(compute="_compute_mdfe30_tot")
+    mdfe30_qNFe = fields.Integer(
+        compute="_compute_mdfe30_tot", store=True, readonly=False
+    )
 
-    mdfe30_qMDFe = fields.Char(compute="_compute_mdfe30_tot")
+    mdfe30_qMDFe = fields.Integer(
+        compute="_compute_mdfe30_tot", store=True, readonly=False
+    )
 
-    mdfe30_qCarga = fields.Float(compute="_compute_mdfe30_tot")
+    mdfe30_qCarga = fields.Float(
+        compute="_compute_mdfe30_tot", store=True, readonly=False
+    )
 
-    mdfe30_vCarga = fields.Float(compute="_compute_mdfe30_tot")
+    mdfe30_vCarga = fields.Float(
+        compute="_compute_mdfe30_tot", store=True, readonly=False
+    )
 
     mdfe30_cUnid = fields.Selection(default="01")
 
@@ -731,6 +742,15 @@ class MDFe(spec_models.StackedModel):
     # Framework Spec model's methods
     ################################
 
+    @api.model
+    def _prepare_import_dict(
+        self, values, model=None, parent_dict=None, defaults_model=None
+    ):
+        return {
+            **super()._prepare_import_dict(values, model, parent_dict, defaults_model),
+            "imported_document": True,
+        }
+
     def _export_many2one(self, field_name, xsd_required, class_obj=None):
         if field_name == "mdfe30_prodPred":
             if self.mdfe30_prodPred.mdfe30_infLotacao:
@@ -739,6 +759,19 @@ class MDFe(spec_models.StackedModel):
             cte_ids = self.mdfe30_infMunDescarga.mapped("cte_ids")
             nfe_ids = self.mdfe30_infMunDescarga.mapped("nfe_ids")
             mdfe_ids = self.mdfe30_infMunDescarga.mapped("mdfe_ids")
+
+            total_dfe = len(cte_ids) + len(nfe_ids) + len(mdfe_ids)
+            if total_dfe != 1:
+                self.mdfe30_prodPred.mdfe30_NCM = False
+
+            elif total_dfe == 1 and not self.mdfe30_infPag:
+                raise UserError(
+                    _(
+                        "Payment information (infPag) "
+                        "must be provided when the MDF-e contains "
+                        "only one DF-e (full load)."
+                    )
+                )
 
             cep_carrega, cep_descarrega = None, None
 
@@ -819,31 +852,18 @@ class MDFe(spec_models.StackedModel):
 
         return super()._export_many2one(field_name, xsd_required, class_obj)
 
-    def _build_attr(self, node, fields, vals, path, attr):
-        key = f"mdfe30_{attr[0]}"
-        value = getattr(node, attr[0])
-
-        # if attr[0] == "any_element":  # build modal
-        #     modal_id = self._get_mdfe_modal_to_build(node.any_element.__module__)
-        #     if modal_id is False:
-        #         return
-
-        #     modal_attrs = modal_id.build_attrs(value, path=path)
-        #     for chave, valor in modal_attrs.items():
-        #         vals[chave] = valor
-        #     return
-
-        if key == "mdfe30_mod":
-            if isinstance(value, Enum):
-                value = value.value
-
-            vals["document_type_id"] = (
+    def _prepare_import_dict(
+        self, values, model=None, parent_dict=None, defaults_model=None
+    ):
+        res = super()._prepare_import_dict(values, model, parent_dict, defaults_model)
+        res["imported_document"] = True
+        if "mdfe30_mod" in values:
+            res["document_type_id"] = (
                 self.env["l10n_br_fiscal.document.type"]
-                .search([("code", "=", value)], limit=1)
+                .search([("code", "=", values["mdfe30_mod"])], limit=1)
                 .id
             )
-
-        return super()._build_attr(node, fields, vals, path, attr)
+        return res
 
     def _get_mdfe_modal_to_build(self, module):
         modal_by_binding_module = {
@@ -894,6 +914,22 @@ class MDFe(spec_models.StackedModel):
                 return match.id
         return False
 
+    def import_binding_mdfe(self, binding, edoc_type="in", dry_run=False):
+        if hasattr(binding, "MDFe"):
+            binding = binding.MDFe
+        document = (
+            self.env["mdfe.30.tmdfe_infmdfe"]
+            .with_context(tracking_disable=True, edoc_type=edoc_type)
+            .build_from_binding("mdfe", "30", binding.infMDFe, dry_run=dry_run)
+        )
+
+        if edoc_type == "in" and document.company_id.vat != cnpj_cpf.formata(
+            binding.infMDFe.emit.CNPJ
+        ):
+            document.fiscal_operation_type = "in"
+            document.issuer = "partner"
+        return document
+
     ################################
     # Business Model Methods
     ################################
@@ -938,9 +974,11 @@ class MDFe(spec_models.StackedModel):
             date = fields.Datetime.context_timestamp(record, record.document_date)
             chave_edoc = ChaveEdoc(
                 ano_mes=date.strftime("%y%m").zfill(4),
-                cnpj_cpf_emitente=record.company_cnpj_cpf,
+                cnpj_cpf_emitente=record.company_id.vat,
                 codigo_uf=(
-                    record.company_state_id and record.company_state_id.ibge_code or ""
+                    record.company_id.state_id
+                    and record.company_id.state_id.ibge_code
+                    or ""
                 ),
                 forma_emissao=int(self.mdfe_transmission),
                 modelo_documento=record.document_type_id.code or "",
@@ -977,8 +1015,14 @@ class MDFe(spec_models.StackedModel):
                 document_id=self,
             )
             record.authorization_event_id = event_id
-            xml_assinado = processador.assina_raiz(edoc, edoc.infMDFe.Id)
-            self._validate_xml(xml_assinado)
+            signed_xml = edoc.sign_xml(
+                xml_file,
+                self.company_id.certificate.file,
+                self.company_id.certificate.password,
+                edoc.infMDFe.Id,
+            )
+            self._validate_xml(signed_xml)
+
         return result
 
     def _validate_xml(self, xml_file):

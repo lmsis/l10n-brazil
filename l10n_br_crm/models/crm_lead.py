@@ -15,7 +15,11 @@ class Lead(models.Model):
     _name = "crm.lead"
     _inherit = [_name, "l10n_br_base.party.mixin"]
 
-    cnpj = fields.Char(string="CNPJ")
+    cnpj = fields.Char(string="CNPJ", unaccent=False)
+
+    cpf = fields.Char(string="CPF", unaccent=False)
+
+    l10n_br_rg_code = fields.Char(string="RG", unaccent=False)
 
     street_name = fields.Char()
 
@@ -24,8 +28,6 @@ class Lead(models.Model):
     name_surname = fields.Char(
         string="Name and Surname", help="Name used in fiscal documents"
     )
-
-    cpf = fields.Char(string="CPF")
 
     show_l10n_br = fields.Boolean(
         compute="_compute_show_l10n_br",
@@ -79,7 +81,7 @@ class Lead(models.Model):
         for record in self:
             check_cnpj_cpf(record.env, record.cpf, record.country_id)
 
-    @api.constrains("inscr_est")
+    @api.constrains("l10n_br_ie_code")
     def _check_ie(self):
         """Checks if company register number in field insc_est is valid,
         this method call others methods because this validation is State wise
@@ -87,7 +89,9 @@ class Lead(models.Model):
         :Return: True or False.
         """
         for record in self:
-            check_ie(record.env, record.inscr_est, record.state_id, record.country_id)
+            check_ie(
+                record.env, record.l10n_br_ie_code, record.state_id, record.country_id
+            )
 
     @api.onchange("cnpj", "country_id")
     def _onchange_cnpj(self):
@@ -131,21 +135,25 @@ class Lead(models.Model):
             if self.partner_id.is_company:
                 result["legal_name"] = self.partner_id.legal_name
                 result["cnpj"] = self.partner_id.cnpj_cpf
-                result["inscr_est"] = self.partner_id.inscr_est
-                result["inscr_mun"] = self.partner_id.inscr_mun
+                result["l10n_br_ie_code"] = self.partner_id.l10n_br_ie_code
+                result["l10n_br_im_code"] = self.partner_id.l10n_br_im_code
                 result["l10n_br_isuf_code"] = self.partner_id.l10n_br_isuf_code
             else:
                 result["partner_name"] = self.partner_id.parent_id.name or False
                 result["legal_name"] = self.partner_id.parent_id.legal_name or False
                 result["cnpj"] = self.partner_id.parent_id.cnpj_cpf or False
-                result["inscr_est"] = self.partner_id.parent_id.inscr_est or False
-                result["inscr_mun"] = self.partner_id.parent_id.inscr_mun or False
+                result["l10n_br_ie_code"] = (
+                    self.partner_id.parent_id.l10n_br_ie_code or False
+                )
+                result["l10n_br_im_code"] = (
+                    self.partner_id.parent_id.l10n_br_im_code or False
+                )
                 result["l10n_br_isuf_code"] = (
                     self.partner_id.parent_id.l10n_br_isuf_code or False
                 )
                 result["website"] = self.partner_id.parent_id.website or False
                 result["cpf"] = self.partner_id.cnpj_cpf
-                result["rg"] = self.partner_id.rg
+                result["l10n_br_rg_code"] = self.partner_id.l10n_br_rg_code
                 result["name_surname"] = self.partner_id.legal_name
         self.update(result)
         return result
@@ -171,8 +179,8 @@ class Lead(models.Model):
             values.update(
                 {
                     "cnpj_cpf": self.cnpj,
-                    "inscr_est": self.inscr_est,
-                    "inscr_mun": self.inscr_mun,
+                    "l10n_br_ie_code": self.l10n_br_ie_code,
+                    "l10n_br_im_code": self.l10n_br_im_code,
                     "l10n_br_isuf_code": self.l10n_br_isuf_code,
                 }
             )
@@ -180,8 +188,8 @@ class Lead(models.Model):
             values.update(
                 {
                     "cnpj_cpf": self.cpf,
-                    "inscr_est": self.rg,
-                    "rg": self.rg,
+                    "l10n_br_ie_code": self.l10n_br_rg_code,
+                    "l10n_br_rg_code": self.l10n_br_rg_code,
                 }
             )
         return values

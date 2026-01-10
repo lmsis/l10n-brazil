@@ -29,15 +29,15 @@ class PartyMixin(models.AbstractModel):
         index=True,
     )
 
-    inscr_est = fields.Char(
+    l10n_br_ie_code = fields.Char(
         string="State Tax Number",
         size=17,
         unaccent=False,
     )
 
-    rg = fields.Char(
-        string="RG",
-        unaccent=False,
+    # compat with legacy code:
+    inscr_est = fields.Char(
+        related="l10n_br_ie_code", string="State Tax Number alias", readonly=False
     )
 
     state_tax_number_ids = fields.One2many(
@@ -46,13 +46,19 @@ class PartyMixin(models.AbstractModel):
         inverse_name="partner_id",
     )
 
-    inscr_mun = fields.Char(
+    l10n_br_im_code = fields.Char(
         string="Municipal Tax Number",
         size=18,
         unaccent=False,
     )
 
+    # backward compat with v14:
+    inscr_mun = fields.Char(
+        related="l10n_br_im_code", string="Municipal Tax Number alias", readonly=False
+    )
+
     l10n_br_isuf_code = fields.Char(
+        string="Suframa",
         size=18,
         unaccent=False,
     )
@@ -101,7 +107,7 @@ class PartyMixin(models.AbstractModel):
         ):
             for term in domain:
                 if (
-                    isinstance(term, list | tuple)
+                    isinstance(term, (list, tuple))  # noqa: UP038
                     and len(term) == 3
                     and term[0] == "vat"
                     and term[1] == "ilike"
@@ -126,19 +132,20 @@ class PartyMixin(models.AbstractModel):
         for partner in self:
             partner.cnpj_cpf = partner.vat
 
-    @api.depends("cnpj_cpf")
+    @api.depends("vat")
     def _compute_cnpj_cpf_stripped(self):
         for record in self:
-            if record.cnpj_cpf:
+            if record.vat:
                 record.cnpj_cpf_stripped = "".join(
-                    char for char in record.cnpj_cpf if char.isalnum()
+                    char for char in record.vat if char.isalnum()
                 )
             else:
                 record.cnpj_cpf_stripped = False
 
     @api.onchange("zip")
     def _onchange_zip(self):
-        self.zip = misc.format_zipcode(self.zip, self.country_id.code)
+        if self.country_id:
+            self.zip = misc.format_zipcode(self.zip, self.country_id.code)
 
     # TODO: O metodo tanto no res.partner quanto no res.company chamam
     #  _onchange_state e aqui também deveria, porém por algum motivo

@@ -35,13 +35,9 @@ class StockPicking(models.Model):
         default=lambda self: self.env.company.currency_id,
     )
 
-    def _get_amount_lines(self):
-        """Get object lines instances used to compute fields"""
-        return self.mapped("move_ids")
-
-    @api.depends("move_ids")
-    def _compute_fiscal_amount(self):
-        return super()._compute_fiscal_amount()
+    @api.model
+    def _get_fiscal_lines_field_name(self):
+        return "move_ids"
 
     @api.depends("move_ids.price_unit")
     def _amount_all(self):
@@ -52,7 +48,7 @@ class StockPicking(models.Model):
     @api.model
     def _get_view(self, view_id=None, view_type="form", **options):
         arch, view = super()._get_view(view_id, view_type, **options)
-        if self.env.company.country_id.code == "BR":
+        if view_type == "form" and self.env.company.country_id.code == "BR":
             arch = self.env["stock.move"].inject_fiscal_fields(arch)
 
         return arch, view

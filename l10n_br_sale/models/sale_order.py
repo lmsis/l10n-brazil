@@ -66,36 +66,17 @@ class SaleOrder(models.Model):
         store=True,
     )
 
-    amount_freight_value = fields.Monetary(
-        inverse="_inverse_amount_freight",
-    )
-
-    amount_insurance_value = fields.Monetary(
-        inverse="_inverse_amount_insurance",
-    )
-
-    amount_other_value = fields.Monetary(
-        inverse="_inverse_amount_other",
-    )
-
-    def _get_amount_lines(self):
-        """Get object lines instaces used to compute fields"""
-        return self.mapped("order_line")
-
-    @api.depends(
-        "order_line.price_subtotal", "order_line.price_tax", "order_line.price_total"
-    )
-    def _compute_amounts(self):
-        """Compute the total amounts of the SO."""
-        for order in self:
-            order._compute_fiscal_amount()
+    @api.model
+    def _get_fiscal_lines_field_name(self):
+        return "order_line"
 
     @api.model
     def _get_view(self, view_id=None, view_type="form", **options):
         arch, view = super()._get_view(view_id, view_type, **options)
         if self.env.company.country_id.code != "BR":
             return arch, view
-        arch = self.env["sale.order.line"].inject_fiscal_fields(arch)
+        if view_type == "form" and self.env.company.country_id.code == "BR":
+            arch = self.env["sale.order.line"].inject_fiscal_fields(arch)
         for tax_totals_node in arch.xpath(
             "//field[@name='tax_totals'][@widget='account-tax-totals-field']"
         ):
@@ -155,7 +136,9 @@ class SaleOrder(models.Model):
 
         moves = self.env["account.move"]
         for document_type in document_types:
-            self = self.with_context(document_type_id=document_type.id)
+            self = self.with_context(
+                document_type_id=document_type.id, l10n_br_fiscal_active=True
+            )
             try:
                 moves |= super()._create_invoices(
                     grouped=grouped, final=final, date=date
@@ -175,7 +158,7 @@ class SaleOrder(models.Model):
     def _prepare_invoice(self):
         self.ensure_one()
         result = super()._prepare_invoice()
-        if self.fiscal_operation_id:  # (Brazil)
+        if self._context.get("l10n_br_fiscal_active"):
             fiscal_values = self._prepare_br_fiscal_dict()
             # unlike super()._prepare_invoice(), prepare_fiscal_dict doesn't consider
             # partner_invoice_id, so we adjust the partner_id eventually:

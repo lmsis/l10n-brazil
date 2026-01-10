@@ -37,9 +37,9 @@ class TestCTeSerialize(TransactionCase):
             cte.action_document_back2draft()
 
         cte.fiscal_line_ids.name = "Frete"
-        cte.fiscal_line_ids._onchange_fiscal_operation_line_id()
+        for line in cte.fiscal_line_ids:
+            line.price_unit = 100
         cte.fiscal_line_ids.cfop_id = cte.env.ref("l10n_br_fiscal.cfop_5352")
-        cte._compute_fiscal_amount()
 
         cte.action_document_confirm()
         cte.document_date = datetime.strptime(

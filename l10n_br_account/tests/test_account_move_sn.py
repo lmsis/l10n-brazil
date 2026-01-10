@@ -35,13 +35,9 @@ class AccountMoveSimpleNacional(AccountMoveBRCommon):
                 "code": "1",
                 "name": "Série 1",
                 "document_type_id": cls.env.ref("l10n_br_fiscal.document_55").id,
+                "company_id": cls.company_data["company"].id,
                 "active": True,
             }
-        )
-        # for some reason this invoice should be created with the popup mode.
-        # it seems like a test framework glitch because in the browser it works fine
-        cls.env.user.groups_id |= cls.env.ref(
-            "l10n_br_account.group_line_fiscal_detail"
         )
         cls.move_out_revenda = cls.init_invoice(
             "out_invoice",

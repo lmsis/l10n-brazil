@@ -10,10 +10,6 @@ class SaleOrderLine(models.Model):
     _inherit = [_name, "l10n_br_fiscal.document.line.mixin"]
 
     @api.model
-    def _default_fiscal_operation(self):
-        return self.env.company.sale_fiscal_operation_id
-
-    @api.model
     def _fiscal_operation_domain(self):
         domain = [
             ("fiscal_operation_type", "=", "out"),
@@ -24,7 +20,6 @@ class SaleOrderLine(models.Model):
 
     fiscal_operation_id = fields.Many2one(
         comodel_name="l10n_br_fiscal.operation",
-        default=_default_fiscal_operation,
         domain=lambda self: self._fiscal_operation_domain(),
     )
 
@@ -48,7 +43,6 @@ class SaleOrderLine(models.Model):
     quantity = fields.Float(
         string="Product Uom Quantity",
         related="product_uom_qty",
-        depends=["product_uom_qty"],
     )
 
     fiscal_qty_delivered = fields.Float(
@@ -61,7 +55,6 @@ class SaleOrderLine(models.Model):
 
     uom_id = fields.Many2one(
         related="product_uom",
-        depends=["product_uom"],
     )
 
     tax_framework = fields.Selection(
@@ -95,12 +88,14 @@ class SaleOrderLine(models.Model):
 
     discount = fields.Float(
         compute="_compute_discounts",
+        inverse="_inverse_discount",
         store=True,
         precompute=True,
     )
 
     discount_value = fields.Monetary(
         compute="_compute_discounts",
+        inverse="_inverse_discount_value",
         store=True,
         precompute=True,
     )
@@ -185,17 +180,14 @@ class SaleOrderLine(models.Model):
         """Compute the amounts of the SO line."""
         result = super()._compute_amount()
         for line in self:
-            # Update taxes fields
-            line._update_fiscal_taxes()
-            # Call mixin compute method
-            line._compute_fiscal_amounts()
-            # Update record
-            line.update(
-                {
-                    "price_tax": line.amount_tax,
-                    "price_total": line.amount_total,
-                }
-            )
+            if line.fiscal_operation_id:
+                line.update(
+                    {
+                        "price_subtotal": line.fiscal_amount_untaxed,
+                        "price_tax": line.fiscal_amount_tax,
+                        "price_total": line.fiscal_amount_total,
+                    }
+                )
         return result
 
     def _prepare_invoice_line(self, **optional_values):
@@ -208,12 +200,6 @@ class SaleOrderLine(models.Model):
                 result["fiscal_quantity"] = self.qty_to_invoice
         result.update(super()._prepare_invoice_line(**optional_values))
         return result
-
-    @api.onchange("product_uom", "product_uom_qty")
-    def _onchange_product_uom(self):
-        """To call the method in the mixin to update
-        the price and fiscal quantity."""
-        self._onchange_commercial_quantity()
 
     @api.depends(
         "qty_delivered_method",
@@ -262,39 +248,40 @@ class SaleOrderLine(models.Model):
                     line.discount / 100
                 )
 
-    @api.onchange("fiscal_tax_ids")
-    def _onchange_fiscal_tax_ids(self):
-        if self.product_id and self.fiscal_operation_line_id:
-            res = super()._onchange_fiscal_tax_ids()
-            self.tax_id = self.fiscal_tax_ids.account_taxes(
-                user_type="sale", fiscal_operation=self.fiscal_operation_id
+    def _inverse_discount(self):
+        for line in self:
+            line.discount_value = (line.product_uom_qty * line.price_unit) * (
+                line.discount / 100
             )
-        else:
-            res = None
-        return res
 
-    def _get_product_price(self):
-        self.ensure_one()
-        if (
-            self.product_id
-            and self.fiscal_operation_id.default_price_unit == "sale_price"
-            and self.order_id.pricelist_id
-            and self.order_id.partner_id
-        ):
-            price = self.with_company(self.company_id)._get_display_price()
-            self.price_unit = self.product_id._get_tax_included_unit_price(
-                self.company_id,
-                self.order_id.currency_id,
-                self.order_id.date_order,
-                "sale",
-                fiscal_position=self.order_id.fiscal_position_id,
-                product_price_unit=price,
-                product_currency=self.currency_id,
+    def _inverse_discount_value(self):
+        for line in self:
+            line.discount = (line.discount_value * 100) / (
+                line.product_uom_qty * line.price_unit or 1
             )
-        elif self.fiscal_operation_id.default_price_unit == "cost_price":
-            self.price_unit = self.product_id.standard_price
-        else:
-            self.price_unit = 0.00
+
+    def _compute_price_unit_fiscal(self):
+        for line in self:
+            if (
+                line.product_id
+                and line.fiscal_operation_id.default_price_unit == "sale_price"
+                and line.order_id.pricelist_id
+                and line.order_id.partner_id
+            ):
+                price = line.with_company(line.company_id)._get_display_price()
+                line.price_unit = line.product_id._get_tax_included_unit_price(
+                    line.company_id,
+                    line.order_id.currency_id,
+                    line.order_id.date_order,
+                    "sale",
+                    fiscal_position=line.order_id.fiscal_position_id,
+                    product_price_unit=price,
+                    product_currency=line.currency_id,
+                )
+            elif line.fiscal_operation_id.default_price_unit == "cost_price":
+                line.price_unit = line.product_id.standard_price
+            else:
+                line.price_unit = 0
 
     def _get_fiscal_partner(self):
         """
@@ -309,7 +296,13 @@ class SaleOrderLine(models.Model):
 
         return partner
 
-    @api.depends("product_id", "company_id", "fiscal_tax_ids")
+    @api.depends(
+        "product_id",
+        "company_id",
+        "fiscal_tax_ids",
+        "fiscal_operation_id",
+        "fiscal_operation_line_id",
+    )
     def _compute_tax_id(self):
         """Compute taxes based on fiscal operation or fallback to default behavior."""
         lines_with_fiscal_operation = self.filtered(
@@ -319,10 +312,16 @@ class SaleOrderLine(models.Model):
 
         for line in lines_with_fiscal_operation:
             line.tax_id = line.fiscal_tax_ids.account_taxes(
-                user_type="sale", fiscal_operation=line.fiscal_operation_id
+                user_type="sale",
+                fiscal_operation=line.fiscal_operation_id,
+                company=line.company_id,
             )
 
         if lines_without_fiscal_operation:
             return super(
                 SaleOrderLine, lines_without_fiscal_operation
             )._compute_tax_id()
+
+    @api.model
+    def _get_total_for_tax_totals(self):
+        return self.order_id.amount_total

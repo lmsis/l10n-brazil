@@ -16,8 +16,8 @@ class ValidCreateIdTest(TransactionCase):
         cls.company_valid = {
             "name": "Company Test 1",
             "legal_name": "Company Testc 1 Ltda",
-            "cnpj_cpf": "02.960.895/0001-31",
-            "inscr_est": "081.981.37-6",
+            "vat": "02.960.895/0001-31",
+            "l10n_br_ie_code": "081.981.37-6",
             "street": "Rod BR-101 Norte Contorno",
             "street_number": "955",
             "street2": "Portão 1",
@@ -35,8 +35,8 @@ class ValidCreateIdTest(TransactionCase):
         cls.company_invalid_cnpj = {
             "name": "Company Test 2",
             "legal_name": "Company Testc 2 Ltda",
-            "cnpj_cpf": "14.018.406/0001-93",
-            "inscr_est": "385.611.86-2",
+            "vat": "14.018.406/0001-93",
+            "l10n_br_ie_code": "385.611.86-2",
             "street": "Rod BR-101 Norte Contorno",
             "street_number": "955",
             "street2": "Portão 1",
@@ -51,11 +51,11 @@ class ValidCreateIdTest(TransactionCase):
             "website": "www.companytest.com.br",
         }
 
-        cls.company_invalid_inscr_est = {
+        cls.company_invalid_l10n_br_ie_code = {
             "name": "Company Test 3",
             "legal_name": "Company Testc 3 Ltda",
-            "cnpj_cpf": "31.295.101/0001-60",
-            "inscr_est": "924.511.27-0",
+            "vat": "31.295.101/0001-60",
+            "l10n_br_ie_code": "924.511.27-0",
             "street": "Rod BR-101 Norte Contorno",
             "street_number": "955",
             "street2": "Portão 1",
@@ -73,8 +73,8 @@ class ValidCreateIdTest(TransactionCase):
         cls.partner_valid = {
             "name": "Partner Test 1",
             "legal_name": "Partner Testc 1 Ltda",
-            "cnpj_cpf": "734.419.622-06",
-            "inscr_est": "176.754.07-5",
+            "vat": "734.419.622-06",
+            "l10n_br_ie_code": "176.754.07-5",
             "street": "Rod BR-101 Norte Contorno",
             "street_number": "955",
             "street2": "Portão 1",
@@ -92,8 +92,8 @@ class ValidCreateIdTest(TransactionCase):
         cls.partner_invalid_cpf = {
             "name": "Partner Test 2",
             "legal_name": "Partner Testc 2 Ltda",
-            "cnpj_cpf": "734.419.622-07",
-            "inscr_est": "538.759.92-5",
+            "vat": "734.419.622-07",
+            "l10n_br_ie_code": "538.759.92-5",
             "street": "Rod BR-101 Norte Contorno",
             "street_number": "955",
             "street2": "Portão 1",
@@ -147,12 +147,12 @@ class ValidCreateIdTest(TransactionCase):
                 self.company_invalid_cnpj
             )
 
-    def test_comp_invalid_inscr_est(self):
+    def test_comp_invalid_l10n_br_ie_code(self):
         """Test if ValidationError raised with correct CNPJ
         and invalid Inscricao Estadual"""
         with self.assertRaises(ValidationError):
             self.env["res.company"].with_context(tracking_disable=True).create(
-                self.company_invalid_inscr_est
+                self.company_invalid_l10n_br_ie_code
             )
 
     # Tests on partners
@@ -186,14 +186,14 @@ class ValidCreateIdTest(TransactionCase):
         )
         self.assertEqual(
             partner.vat,
-            self.partner_valid["cnpj_cpf"],
+            self.partner_valid["vat"],
             "vat should be equal to CPF for a br partner",
         )
 
     def test_vat_computation_without_cnpj(self):
         """Test VAT computation for a br partner without CNPJ"""
         partner_data = self.partner_valid.copy()
-        partner_data.pop("cnpj_cpf")
+        partner_data.pop("vat")
         partner = (
             self.env["res.partner"]
             .with_context(tracking_disable=True)
@@ -230,7 +230,7 @@ class ValidCreateIdTest(TransactionCase):
     def test_vat_computation_with_company_name_and_vat(self):
         """Test VAT computation for a br partner with company_name and vat"""
         partner_data = self.partner_valid.copy()
-        partner_data.pop("cnpj_cpf")
+        partner_data.pop("vat")
         partner_data.update(
             {
                 "company_name": "Company Partner",
@@ -271,18 +271,18 @@ class ValidCreateIdTest(TransactionCase):
             "The legal name must be the same as the company name",
         )
         self.assertEqual(
-            company.cnpj_cpf,
+            company.vat,
             partner.vat,
             "The company CNPJ_CPF must be the same as the partner VAT",
         )
         self.assertEqual(
-            company.inscr_est,
-            partner.inscr_est,
+            company.l10n_br_ie_code,
+            partner.l10n_br_ie_code,
             "The company INSCR_EST must be the same as the partner INSCR_EST",
         )
         self.assertEqual(
-            company.inscr_mun,
-            partner.inscr_mun,
+            company.l10n_br_im_code,
+            partner.l10n_br_im_code,
             "The company INSCR_MUN must be the same as the partner INSCR_MUN",
         )
 

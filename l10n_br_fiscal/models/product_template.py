@@ -83,7 +83,7 @@ class ProductTemplate(models.Model):
         domain="[('internal_type', '=', 'normal')]",
     )
 
-    city_taxation_code_id = fields.Many2many(
+    city_taxation_code_ids = fields.Many2many(
         comodel_name="l10n_br_fiscal.city.taxation.code", string="City Taxation Code"
     )
 
@@ -104,6 +104,10 @@ class ProductTemplate(models.Model):
 
     nbs_id = fields.Many2one(
         comodel_name="l10n_br_fiscal.nbs", index=True, string="NBS"
+    )
+
+    operation_indicator_id = fields.Many2one(
+        comodel_name="l10n_br_fiscal.operation.indicator",
     )
 
     cest_id = fields.Many2one(

@@ -4,7 +4,7 @@
 {
     "name": "MDFe",
     "summary": """Brazilian Eletronic Invoice MDF-e""",
-    "version": "16.0.2.2.1",
+    "version": "16.0.4.0.0",
     "category": "Localisation",
     "license": "AGPL-3",
     "author": "KMEE,Escodoo,Odoo Community Association (OCA)",
@@ -45,9 +45,9 @@
     "auto_install": False,
     "external_dependencies": {
         "python": [
-            "nfelib<=2.0.7",
-            "erpbrasil.transmissao>=1.1.0",
-            "erpbrasil.edoc>=2.5.2",
+            "nfelib",
+            "erpbrasil.transmissao",
+            "erpbrasil.edoc",
         ]
     },
 }

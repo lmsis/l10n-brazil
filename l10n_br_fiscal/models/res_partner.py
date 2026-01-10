@@ -10,6 +10,7 @@ from ..constants.fiscal import (
     NFE_IND_IE_DEST,
     NFE_IND_IE_DEST_9,
     NFE_IND_IE_DEST_DEFAULT,
+    PUBLIC_ENTIRY_TYPE,
     TAX_FRAMEWORK,
     TAX_FRAMEWORK_NORMAL,
 )
@@ -76,6 +77,11 @@ class ResPartner(models.Model):
         "other government-controlled organizations.",
     )
 
+    public_entity_type = fields.Selection(
+        selection=PUBLIC_ENTIRY_TYPE,
+        string="Tipo de Entidade Governamental",
+    )
+
     ind_final = fields.Selection(
         selection=FINAL_CUSTOMER,
         string="Final Consumption Operation",
@@ -83,15 +89,15 @@ class ResPartner(models.Model):
         tracking=True,
     )
 
-    cnpj_cpf = fields.Char(
+    vat = fields.Char(
         tracking=True,
     )
 
-    inscr_est = fields.Char(
+    l10n_br_ie_code = fields.Char(
         tracking=True,
     )
 
-    inscr_mun = fields.Char(
+    l10n_br_im_code = fields.Char(
         tracking=True,
     )
 
@@ -105,6 +111,20 @@ class ResPartner(models.Model):
 
     city_id = fields.Many2one(
         tracking=True,
+    )
+
+    rntrc_code = fields.Char(
+        string="RNTRC Code", size=12, unaccent=False, tracking=True
+    )
+
+    nif_motive_absence = fields.Selection(
+        selection=[
+            ("0", "Not informed in the origin note"),
+            ("1", "Exemption from NIF"),
+            ("2", "NIF not required"),
+        ],
+        default=False,
+        string="NIF motive absence",
     )
 
     def _inverse_fiscal_profile(self):
@@ -123,12 +143,13 @@ class ResPartner(models.Model):
                 p.tax_framework = p.fiscal_profile_id.tax_framework
                 p.ind_ie_dest = p.fiscal_profile_id.ind_ie_dest
                 p.is_public_entity = p.fiscal_profile_id.is_public_entity
+                p.public_entity_type = p.fiscal_profile_id.public_entity_type
 
     @api.onchange("ind_ie_dest")
     def _onchange_ind_ie_dest(self):
         for p in self:
             if p.ind_ie_dest == NFE_IND_IE_DEST_9:
-                p.inscr_est = False
+                p.l10n_br_ie_code = False
                 p.state_tax_number_ids = False
 
     @api.model
@@ -139,6 +160,6 @@ class ResPartner(models.Model):
             "ind_ie_dest",
             "fiscal_profile_id",
             "ind_final",
-            "inscr_est",
-            "inscr_mun",
+            "l10n_br_ie_code",
+            "l10n_br_im_code",
         ]

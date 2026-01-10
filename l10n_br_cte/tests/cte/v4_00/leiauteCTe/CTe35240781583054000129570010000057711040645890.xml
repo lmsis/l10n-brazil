@@ -134,20 +134,20 @@
       <email>cliente3@cliente3.com.br</email>
     </dest>
     <vPrest>
-      <vTPrest>47.00</vTPrest>
-      <vRec>47.00</vRec>
+      <vTPrest>100.00</vTPrest>
+      <vRec>100.00</vRec>
       <Comp>
         <xNome>Frete</xNome>
-        <vComp>47.00</vComp>
+        <vComp>100.00</vComp>
       </Comp>
     </vPrest>
     <imp>
       <ICMS>
         <ICMS00>
           <CST>00</CST>
-          <vBC>47.00</vBC>
+          <vBC>100.00</vBC>
           <pICMS>18.00</pICMS>
-          <vICMS>8.46</vICMS>
+          <vICMS>18.00</vICMS>
         </ICMS00>
       </ICMS>
     </imp>
