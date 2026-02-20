@@ -8,12 +8,12 @@
         <field name="name">l10n_br_fiscal.closing.tree</field>
         <field name="model">l10n_br_fiscal.closing</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="month" />
                 <field name="year" />
                 <field name="export_type" />
                 <field name="include_pdf_file" />
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -67,11 +67,11 @@
                             <p />
                             <p />Send by email:
                             <button
-                                    type="action"
-                                    name="%(mail.action_email_compose_message_wizard)d"
-                                    icon="fa-paper-plane fa-lg"
-                                    class="btn-link"
-                                /></h3>
+                                type="action"
+                                name="%(mail.action_email_compose_message_wizard)d"
+                                icon="fa-paper-plane fa-lg"
+                                class="btn-link"
+                            /></h3>
                         </group>
                     </group>
                     <group invisible="state != 'open'">
@@ -142,7 +142,7 @@
     <record id="fiscal_closing_action" model="ir.actions.act_window">
         <field name="name">Fiscal Closing</field>
         <field name="res_model">l10n_br_fiscal.closing</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
     <!-- Fiscal Closing -->
     <menuitem
