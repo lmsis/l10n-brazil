@@ -1,6 +1,6 @@
 [project]
 name = "odoo-addons-oca-l10n-brazil"
-version = "18.0.20260216.0"
+version = "18.0.20260320.0"
 dependencies = [
     "odoo-addon-l10n_br_account_due_list==18.0.*",
     "odoo-addon-l10n_br_account_payment_order==18.0.*",
@@ -14,6 +14,7 @@ dependencies = [
     "odoo-addon-l10n_br_currency_rate_update==18.0.*",
     "odoo-addon-l10n_br_fiscal==18.0.*",
     "odoo-addon-l10n_br_fiscal_certificate==18.0.*",
+    "odoo-addon-l10n_br_fiscal_closing==18.0.*",
     "odoo-addon-l10n_br_fiscal_dfe==18.0.*",
     "odoo-addon-l10n_br_fiscal_edi==18.0.*",
     "odoo-addon-l10n_br_fiscal_notification==18.0.*",
