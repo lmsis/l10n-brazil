@@ -285,7 +285,7 @@ class FiscalClosing(models.Model):
             try:
                 path = "/".join(
                     [
-                        misc.punctuation_rm(self.company_id.cnpj_cpf),
+                        misc.punctuation_rm(self.company_id.vat),
                         "invalidate_numbers",
                     ]
                 )
