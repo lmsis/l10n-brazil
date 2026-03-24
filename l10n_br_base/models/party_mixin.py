@@ -13,13 +13,6 @@ class PartyMixin(models.AbstractModel):
     _description = "Brazilian partner and company data mixin"
 
     vat = fields.Char()  # mixin methods needs the vat field here
-    cnpj_cpf = fields.Char(  # alias for v14 backward compat
-        string="CNPJ/CPF",
-        # (for some reason related="vat" makes numerous tests fail)
-        inverse="_inverse_cnpj_cpf",
-        compute="_compute_cnpj_cpf",
-        copy=False,
-    )
 
     cnpj_cpf_stripped = fields.Char(
         string="CNPJ/CPF Stripped",
@@ -34,11 +27,6 @@ class PartyMixin(models.AbstractModel):
         size=17,
     )
 
-    # compat with legacy code:
-    inscr_est = fields.Char(
-        related="l10n_br_ie_code", string="State Tax Number alias", readonly=False
-    )
-
     state_tax_number_ids = fields.One2many(
         string="Others State Tax Number",
         comodel_name="state.tax.numbers",
@@ -48,11 +36,6 @@ class PartyMixin(models.AbstractModel):
     l10n_br_im_code = fields.Char(
         string="Municipal Tax Number",
         size=18,
-    )
-
-    # backward compat with v14:
-    inscr_mun = fields.Char(
-        related="l10n_br_im_code", string="Municipal Tax Number alias", readonly=False
     )
 
     l10n_br_isuf_code = fields.Char(
@@ -90,10 +73,6 @@ class PartyMixin(models.AbstractModel):
             else False
         )
 
-    def _inverse_cnpj_cpf(self):
-        for partner in self:
-            partner.vat = cnpj_cpf.formata(str(self.cnpj_cpf))
-
     @api.model
     def search(self, domain, offset=0, limit=None, order=None, count=False):
         """in the case of a simple search with only OR terms and a vat ilike condition,
@@ -114,20 +93,6 @@ class PartyMixin(models.AbstractModel):
                     )
                     break
         return super().search(domain, offset, limit, order)
-
-    @api.onchange("cnpj_cpf")
-    def _onchange_cnpj_cpf(self):  # TODO, see comment bellow
-        """
-        In the future we should simply put @api.onchange("cnpj_cpf")
-        on _inverse_cnpj_cpf and remove this method. But for now,
-        it's good to maintain backward compat with the v14 codebase with this.
-        """
-        return self._inverse_cnpj_cpf()
-
-    @api.depends("vat")
-    def _compute_cnpj_cpf(self):
-        for partner in self:
-            partner.cnpj_cpf = partner.vat
 
     @api.depends("vat")
     def _compute_cnpj_cpf_stripped(self):
@@ -155,3 +120,9 @@ class PartyMixin(models.AbstractModel):
     @api.onchange("city_id")
     def _onchange_city_id(self):
         self.city = self.city_id.name
+
+    @api.onchange("vat")
+    def _onchange_vat(self):
+        """Format the VAT field (CNPJ/CPF) with proper punctuation."""
+        if self.vat:
+            self.vat = cnpj_cpf.formata(str(self.vat))
