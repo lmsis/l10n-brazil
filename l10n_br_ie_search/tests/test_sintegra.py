@@ -82,8 +82,8 @@ class TestSintegra(TransactionCase):
     @patch("requests.get")
     def test_sintegra(self, mock_get_partner_ie):
         mock_get_partner_ie.return_value = self.retorno
-        dummy = self.model.create({"name": "Dummy", "cnpj_cpf": "06990590000123"})
-        dummy._onchange_cnpj_cpf()
+        dummy = self.model.create({"name": "Dummy", "vat": "06990590000123"})
+        dummy._onchange_vat()
         action_wizard = dummy.action_open_cnpj_search_wizard()
         wizard_context = action_wizard.get("context")
         wizard = Form(

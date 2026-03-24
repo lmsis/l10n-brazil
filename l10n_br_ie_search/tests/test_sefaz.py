@@ -150,11 +150,11 @@ class TestSefaz(TransactionCase):
                 dummy = self.model.create(
                     {
                         "name": "Dummy",
-                        "cnpj_cpf": "88.570.377/0001-27",
+                        "vat": "88.570.377/0001-27",
                         "certificate_ecnpj_id": self.cert.id,
                     }
                 )
-                dummy._onchange_cnpj_cpf()
+                dummy._onchange_vat()
                 action_wizard = dummy.action_open_cnpj_search_wizard()
                 wizard_context = action_wizard.get("context")
                 wizard_context["active_model"] = "res.partner"

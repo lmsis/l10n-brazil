@@ -69,7 +69,7 @@ class SefazWebservice(models.AbstractModel):
     @api.model
     def _validate(self, response):
         if response.status_code != 200:
-            raise ValidationError(_("%s" % response.reason))
+            raise ValidationError(_(f"{response.reason}"))
 
     @api.model
     def _sintegra_import_data(self, data):
