@@ -44,6 +44,9 @@ class ResPartner(models.Model):
         else:
             email = None
 
+        # Char vazio no Odoo é False; não pode fazer [:60] em bool.
+        legal_name_str = self.legal_name if isinstance(self.legal_name, str) else ""
+
         return {
             "cnpj": tomador_cnpj,
             "cpf": tomador_cpf,
@@ -52,7 +55,7 @@ class ResPartner(models.Model):
             or None,
             "inscricao_estadual": misc.punctuation_rm(self.l10n_br_ie_code or "")
             or None,
-            "razao_social": str(self.legal_name[:60] or ""),
+            "razao_social": str(legal_name_str[:60] or ""),
             "endereco": str(self.street_name or self.street or ""),
             "numero": self.street_number or "",
             "bairro": str(self.district or "Sem Bairro"),

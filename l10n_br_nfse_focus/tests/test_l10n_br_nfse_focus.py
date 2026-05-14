@@ -336,6 +336,23 @@ class TestL10nBrNfseFocus(common.TransactionCase):
             str(e.exception),
         )
 
+    @patch("odoo.addons.l10n_br_nfse_focus.models.base.requests.request")
+    def test_make_focus_nfse_http_request_400(self, mock_request):
+        """HTTP 400 must surface Focus API body (e.g. mensagem), not only 'Bad Request'."""
+        mock_request.return_value.status_code = 400
+        mock_request.return_value.reason = "Bad Request"
+        mock_request.return_value.json.return_value = {
+            "mensagem": "Requisição inválida: tomador sem CEP.",
+        }
+
+        with self.assertRaises(UserError) as e:
+            self.nfse_focus._make_focus_nfse_http_request(
+                "POST", "https://api.focusnfe.com.br/v2/nfse", self.token, PAYLOAD
+            )
+        exc_str = str(e.exception)
+        self.assertIn("HTTP 400", exc_str)
+        self.assertIn("tomador sem CEP", exc_str)
+
     def test_make_focus_nfse_pdf(self):
         """Tests generation of NFSe PDF."""
         record = self.nfse_demo
